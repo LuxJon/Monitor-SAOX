@@ -1,0 +1,62 @@
+name: SAOX Build and Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: Check tag version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: node -e 'const m=JSON.parse(require("fs").readFileSync("theme.json")); if(process.env.GITHUB_REF_NAME!=="v"+m.version) process.exit(1)'
+      - run: npm run package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SAOX-package
+          path: |
+            theme.tar.gz
+            SAOX-*-source.zip
+            SHA256SUMS
+            theme.json
+            preview.png
+  release:
+    # Personal repository release only; no public theme registry submission.
+    if: startsWith(github.ref, 'refs/tags/') && github.repository == 'LuxJon/Monitor-SAOX'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: SAOX-package
+          path: release
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: SAOX ${{ github.ref_name }}
+          body_path: .github/release-notes/v1.2.3.md
+          files: |
+            release/theme.tar.gz
+            release/SAOX-*-source.zip
+            release/SHA256SUMS
+          fail_on_unmatched_files: true
+          make_latest: true

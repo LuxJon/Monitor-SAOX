@@ -1,0 +1,1335 @@
+/* 首页品牌铭牌：只保留站点名，绝对定位到 AppShell 已经存在的顶部留白里。 */
+.home-brand {
+  position: absolute;
+  top: -14px;
+  left: 0;
+  z-index: 30;
+  display: flex;
+  height: 36px;
+  max-width: min(38rem, calc(100vw - 10rem));
+  align-items: center;
+  pointer-events: none;
+  transition:
+    opacity 160ms ease,
+    transform 180ms ease,
+    visibility 160ms ease;
+}
+
+.home-brand-title {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  padding: 2px 20px 3px 0;
+  font-size: clamp(18px, 1.5vw, 21px);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .home-brand {
+    max-width: calc(100vw - 8.5rem);
+  }
+
+  .home-brand-title {
+    font-size: 19px;
+  }
+
+}
+
+/* 中小屏的完整快捷栏会占用顶部大部分宽度。由 React 同步显式状态类，兼容
+   Chrome 87，并覆盖平板宽度；折叠后站点名立即恢复。PC 端（>= 1024px）保持常驻不撤出。 */
+@media (max-width: 1023px) {
+
+  .home-dashboard.is-controls-expanded .home-brand,
+body.is-nav-controls-expanded .mao-nav-brand-left {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-20px);
+  }
+
+  .mao-nav-brand-left {
+    transition: opacity 200ms ease, visibility 200ms ease, transform 200ms ease;
+  }
+}
+.mao-nav-brand-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ==========================================================================
+   MAO 风格顶部导航 Bar 框架
+   ========================================================================== */
+.mao-top-nav-bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  width: 100%;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: #f4f5f7;
+  padding-top: env(safe-area-inset-top, 0px);
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+:root[data-appearance="dark"] .mao-top-nav-bar {
+  background: #09090b;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.mao-nav-title {
+  font-size: 15px;
+  font-weight: 750;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+/* ==========================================================================
+   MAO Dashboard Hero 容器与指标设计体系
+   ========================================================================== */
+
+/* Exact 1:1 Dia Text Reveal Sweep & Aurora Flow from MAO_Theme */
+@keyframes dia-text-reveal-once {
+  0% {
+    background-position: 250% 0;
+  }
+
+  100% {
+    background-position: -150% 0;
+  }
+}
+
+@keyframes dia-sweep-fade-out {
+  0% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+@keyframes aurora-fade-in {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes dia-text-reveal-sweep {
+  0% {
+    background-position: 250% 0;
+  }
+
+  65%,
+100% {
+    background-position: -150% 0;
+  }
+}
+
+@keyframes aurora-text-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.dia-text-reveal-container {
+  display: inline-grid;
+  place-items: start;
+  width: max-content;
+  white-space: nowrap;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transform: translateZ(0);
+}
+
+.dia-sweep-layer,
+.aurora-text-layer {
+  grid-column: 1 / 2;
+  grid-row: 1 / 2;
+  display: inline-block;
+  white-space: nowrap;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transform: translateZ(0);
+  will-change: opacity;
+}
+
+.dia-text-reveal-once {
+  background: var(--dia-gradient, linear-gradient(110deg, currentColor 0%, currentColor 25%, #c679c4 35%, #fa3d1d 42%, #ffb005 50%, #8b5cf6 58%, #0358f7 65%, currentColor 75%, currentColor 100%));
+  background-size: 250% 100%;
+  background-position: 250% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation:
+    dia-text-reveal-once var(--dia-duration, 2.5s) cubic-bezier(0.35, 0, 0.25, 1) var(--dia-delay, 0.2s) both,
+    dia-sweep-fade-out 0.8s ease-in-out calc(var(--dia-delay, 0.2s) + var(--dia-duration, 2.5s) - 0.7s) forwards;
+}
+
+.dia-text-reveal-repeat {
+  background: var(--dia-gradient, linear-gradient(110deg, currentColor 0%, currentColor 25%, #c679c4 35%, #fa3d1d 42%, #ffb005 50%, #8b5cf6 58%, #0358f7 65%, currentColor 75%, currentColor 100%));
+  background-size: 250% 100%;
+  background-position: 250% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: dia-text-reveal-sweep var(--dia-duration, 3.5s) cubic-bezier(0.35, 0, 0.25, 1) var(--dia-delay, 0s) infinite;
+}
+
+.aurora-text-layer-animated {
+  background-image: var(--aurora-gradient, linear-gradient(135deg, #c679c4 0%, #fa3d1d 25%, #ffb005 50%, #8b5cf6 75%, #0358f7 90%, #c679c4 100%));
+  background-size: 250% 250%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  opacity: 0;
+  animation:
+    aurora-fade-in 1.0s ease-in-out calc(var(--dia-delay, 0.2s) + var(--dia-duration, 2.5s) - 0.8s) 1 forwards,
+    aurora-text-flow var(--aurora-speed, 8s) ease-in-out infinite;
+}
+
+.aurora-text-layer-only {
+  background-image: var(--aurora-gradient, linear-gradient(135deg, #c679c4 0%, #fa3d1d 25%, #ffb005 50%, #8b5cf6 75%, #0358f7 90%, #c679c4 100%));
+  background-size: 250% 250%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: aurora-text-flow var(--aurora-speed, 8s) ease-in-out infinite;
+}
+
+/* 指标卡片网格：填充满左侧垂直高度并与右侧卡片底部严格齐平 */
+
+/* 续费提醒卡片有浮窗打开时提升 stacking context，覆盖相邻 hover 卡片 */
+
+/* 指标卡片图标容器：深浅模式分立特化 */
+
+/* 6 种指标类型的色值绑定 */
+
+/* 浅色模式：保持无微底框状态 (纯矢量图标，颜色与深色模式保持 100% 同步对应) */
+
+/* 深色模式：启用 HUD 科技感微底框与发光阴影 */
+
+/* 深色模式下悬停微互动：HUD 微底框微妙提亮与微光扩散 */
+
+/* 右侧进度与健康状态侧栏 */
+
+/* 一节一节的离散节点状态格（少于 51 个节点时呈现经典胶囊） */
+
+/* 纯无缝一体化进度条（节点数 >= 51 时无缝切换） */
+:root {
+
+  /* 指标卡片 6 维标准图标色（深浅模式保持同一套色值，避免撞色） */
+  --metric-connections-color: #10b981;
+  --metric-cpu-color: #f59e0b;
+  --metric-ram-color: #6366f1;
+  --metric-disk-color: #f97316;
+  --metric-traffic-color: #0284c7;
+  --metric-uptime-color: #06b6d4;
+  --metric-asset-color: #eab308;
+}
+
+.server-card.is-highlight-target,
+.compact-node-card.is-highlight-target,
+.node-list-row.is-highlight-target {
+  animation: mao-target-ring 2s ease-out;
+}
+
+@keyframes mao-target-ring {
+  0% {
+    box-shadow: 0 0 0 3px var(--theme-accent, #3b82f6), 0 0 16px rgba(59, 130, 246, 0.45);
+  }
+
+  100% {
+    box-shadow: none;
+  }
+}
+.mao-server-section {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 22px;
+  background: var(--surface-elev, #eaecf0);
+  padding: clamp(16px, 2vw, 24px);
+  margin-bottom: 8px;
+  box-shadow: none;
+  position: relative;
+  z-index: 1;
+  gap: 16px;
+}
+
+:root[data-appearance="dark"] .mao-server-section {
+  background: #121214;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.6);
+}
+
+.overview-card {
+  --metric-accent: var(--text-tertiary);
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 112px;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 100% at 0% 0%,
+      color-mix(in srgb, var(--metric-accent) 6%, transparent) 0%,
+      transparent 52%),
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--surface-elev-a) 96%, white 4%) 0%,
+      var(--surface-a) 100%);
+  padding: 14px 16px;
+}
+
+.overview-card[data-metric="online"] {
+  --metric-accent: var(--status-success);
+}
+
+.overview-card[data-metric="traffic"] {
+  --metric-accent: var(--traffic-up);
+}
+
+.overview-card[data-metric="bandwidth"] {
+  --metric-accent: var(--speed-high);
+}
+
+.overview-card[data-metric="uptime"] {
+  --metric-accent: var(--status-success);
+}
+
+.overview-card[data-metric="asset"] {
+  --metric-accent: var(--accent-500);
+}
+
+/* 暗色依靠表面色阶建立层级，不叠白色顶光或指标色氛围。 */
+:root[data-appearance="dark"] .overview-card {
+  background: var(--surface-a);
+}
+
+.overview-card-head {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.overview-card-label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overview-card-action {
+  display: grid;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  box-shadow: none;
+  opacity: 0.82;
+  transition:
+    color 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.overview-card-action:hover {
+  background: transparent;
+  color: var(--text-primary);
+  opacity: 1;
+}
+
+.overview-card-action:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--text-secondary) 54%, transparent);
+  outline-offset: 2px;
+}
+
+.overview-card-action:active {
+  transform: scale(0.94);
+}
+
+/* 续费提醒复用资产入口，不另占首页内容流。平时只露一个轻量角标，弹层覆盖展开，
+   因此不会把概览、筛选或节点卡向下推。 */
+.renewal-reminder {
+  position: relative;
+  z-index: 90;
+  flex: 0 0 auto;
+}
+
+.renewal-reminder-trigger {
+  position: relative;
+}
+
+.renewal-reminder-dot {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 7px;
+  height: 7px;
+  border: 2px solid var(--surface-elev);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--status-error) 72%, white 28%);
+  box-sizing: content-box;
+  animation: renewal-reminder-breathe 2.4s ease-in-out infinite;
+}
+
+.renewal-reminder-dot::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border: 1px solid color-mix(in srgb, var(--status-error) 56%, transparent);
+  border-radius: inherit;
+  opacity: 0;
+  transform: scale(0.72);
+  animation: renewal-reminder-ring 2.4s ease-out infinite;
+}
+
+@keyframes renewal-reminder-breathe {
+
+  0%,
+100% {
+    opacity: 0.72;
+    transform: scale(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes renewal-reminder-ring {
+
+  0%,
+24% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+
+  46% {
+    opacity: 0.42;
+  }
+
+  76%,
+100% {
+    opacity: 0;
+    transform: scale(1.24);
+  }
+}
+
+.renewal-reminder-panel,
+.shadcn-hover-card {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 120;
+  width: min(360px, calc(100vw - 32px));
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  background: rgba(244, 245, 247, 0.96);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow:
+    0 16px 40px -12px rgba(15, 23, 42, 0.15),
+    0 4px 12px -4px rgba(15, 23, 42, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.03);
+  color: var(--text-primary);
+  transform-origin: top right;
+  animation: shadcn-hover-card-in 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.renewal-reminder-panel.is-align-left {
+  right: auto;
+  left: 0;
+  transform-origin: top left;
+}
+
+.renewal-reminder-panel.is-align-right {
+  left: auto;
+  right: 0;
+  transform-origin: top right;
+}
+
+:root[data-appearance="dark"] .renewal-reminder-panel,
+:root[data-appearance="dark"] .shadcn-hover-card {
+  background: rgba(20, 20, 23, 0.94);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 20px 48px -12px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+@keyframes shadcn-hover-card-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.renewal-reminder-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 16px 12px;
+}
+
+.renewal-reminder-title-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.renewal-reminder-title-line h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 760;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.renewal-reminder-count {
+  display: inline-flex;
+  min-width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--status-warning) 16%, transparent);
+  color: color-mix(in srgb, var(--status-warning) 84%, var(--text-primary));
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 760;
+  font-variant-numeric: tabular-nums;
+}
+
+.renewal-reminder-head p {
+  margin: 5px 0 0;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.renewal-reminder-close {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-tertiary);
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.renewal-reminder-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-primary);
+}
+
+:root[data-appearance="dark"] .renewal-reminder-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.renewal-reminder-list {
+  display: flex;
+  max-height: 280px;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding: 0 14px 14px;
+}
+
+.renewal-reminder-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 11px 13px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
+}
+
+:root[data-appearance="dark"] .renewal-reminder-row {
+  background: #161618;
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+.renewal-reminder-row-main {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 12px;
+  row-gap: 5px;
+}
+
+.renewal-reminder-row-main strong {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 720;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.renewal-reminder-row-main span {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 560;
+  line-height: 1.2;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.renewal-reminder-status {
+  flex: 0 0 auto;
+  border-radius: 7px;
+  padding: 5px 7px;
+  font-size: 10px;
+  font-weight: 720;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.renewal-reminder-status[data-tone="critical"] {
+  background: color-mix(in srgb, var(--status-error) 12%, transparent);
+  color: var(--status-error);
+}
+
+.renewal-reminder-status[data-tone="warning"] {
+  background: color-mix(in srgb, var(--status-warning) 14%, transparent);
+  color: color-mix(in srgb, var(--status-warning) 82%, var(--text-primary));
+}
+
+.renewal-reminder-status[data-tone="success"] {
+  background: color-mix(in srgb, var(--status-success) 12%, transparent);
+  color: var(--status-success);
+}
+
+.renewal-reminder-more {
+  margin: 1px 2px 0;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.renewal-reminder-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(0, 0, 0, 0.02);
+  padding: 10px 14px 12px;
+}
+
+:root[data-appearance="dark"] .renewal-reminder-actions {
+  border-top-color: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.renewal-reminder-actions a,
+.renewal-reminder-actions>button {
+  min-height: 30px;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.renewal-reminder-detail {
+  display: inline-flex;
+  margin-right: auto;
+  align-items: center;
+  color: var(--accent-500);
+}
+
+.renewal-reminder-detail:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.renewal-reminder-btn-group {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 9px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+:root[data-appearance="dark"] .renewal-reminder-btn-group {
+  background: #1c1c1f;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+}
+
+.renewal-reminder-later,
+.renewal-reminder-dismiss {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 11px;
+  min-height: 30px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-primary);
+  transition: background 140ms ease, color 140ms ease;
+}
+
+/* 两按钮之间的竖向分隔线 */
+.renewal-reminder-later::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 20%;
+  height: 60%;
+  width: 1px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+:root[data-appearance="dark"] .renewal-reminder-later::after {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.renewal-reminder-later:hover {
+  background: rgba(0, 0, 0, 0.045);
+}
+
+:root[data-appearance="dark"] .renewal-reminder-later:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.renewal-reminder-dismiss {
+  color: var(--text-secondary);
+}
+
+.renewal-reminder-dismiss:hover {
+  background: rgba(0, 0, 0, 0.045);
+  color: var(--text-primary);
+}
+
+:root[data-appearance="dark"] .renewal-reminder-dismiss:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+@media (max-width: 520px) {
+  .renewal-reminder-panel {
+    position: fixed;
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    width: auto;
+    max-height: min(72vh, 620px);
+    border-radius: 18px;
+  }
+
+  .renewal-reminder-actions {
+    flex-wrap: wrap;
+  }
+
+  .renewal-reminder-detail {
+    flex: 1 0 100%;
+    justify-content: center;
+    margin-right: 0;
+  }
+
+  .renewal-reminder-later,
+.renewal-reminder-dismiss {
+    flex: 1 1 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .renewal-reminder-dot,
+.renewal-reminder-dot::after {
+    animation: none;
+  }
+
+  .renewal-reminder-dot {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.overview-card-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.overview-card-value {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--text-primary);
+  font-size: 28px;
+  font-weight: 760;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.overview-card-unit {
+  color: var(--text-tertiary);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+/* 在线数量是首卡的辅助状态，略小于流量、带宽等核心指标。 */
+.overview-card[data-metric="online"] .overview-card-value {
+  font-size: 24px;
+}
+
+.overview-card[data-metric="online"] .overview-card-unit {
+  font-size: 12px;
+}
+
+.overview-card-sub {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 560;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+.overview-card-sub-compact {
+  display: none;
+}
+
+.overview-card-footer {
+  display: flex;
+  min-width: 0;
+  margin-top: auto;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* 底部小字说明(如资产卡的「实时汇率计算」)。 */
+.overview-card-caption {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 指示圆点呼吸闪烁效果：位置绝对钉死在左侧 9px 槽位，杜绝跟随评级文字长短发生水平位移与缩进抖动 */
+
+/* 等级 0：正常/闲置 翠绿光晕 */
+
+/* 等级 1：轻载 主题蓝/青光晕 */
+
+/* 等级 2：活跃 橙黄暖色光晕 (绝不串色为绿) */
+
+/* 等级 3：SURGE 爆发 玫红/警示粉红光晕 (绝不串色为绿) */
+
+/* 在线条:左绿=在线、右红=离线,中间中性轨道=未知。初始用中性而非红色,避免指标
+   到达前首帧闪红;随后绿/红从两端同时长入。准确的「12 / 14」就在其上方,所以这条
+   只作快速一瞥用。 */
+.overview-bar {
+  display: flex;
+  justify-content: space-between;
+  height: 6px;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--progress-bg);
+}
+
+.overview-bar-online,
+.overview-bar-offline {
+  height: 100%;
+  transition: width 320ms ease;
+}
+
+.overview-bar-online {
+  background: var(--overview-online);
+}
+
+.overview-bar-offline {
+  background: var(--overview-offline);
+}
+
+/* 块状版(节点数 5–10):每台一格,规格与主题分段格(MetricBar 的 canvas 分段)
+   一致——10px 高、2px 间隙、2px 圆角、内阴影,读作有厚度的格子而非切条。颜色与
+   .overview-bar-online/offline 同源,保持同步;默认格为中性底色,只有真离线才变红,避免条状那种「首帧闪红」。 */
+.overview-blocks {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  width: 100%;
+}
+
+.overview-block {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--progress-bg);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.18);
+  transition: background 320ms ease;
+}
+
+.overview-block.is-online {
+  background: var(--overview-online);
+}
+
+.overview-block.is-offline {
+  background: var(--overview-offline);
+}
+
+.home-group-tabs {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 3px;
+  overflow-x: auto;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 3px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+:root[data-appearance="dark"] .home-group-tabs {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.home-group-tabs button {
+  display: inline-flex;
+  flex: 1 0 auto;
+  min-height: 28px;
+  max-width: 240px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: none;
+  border-radius: 9px;
+  color: var(--text-secondary);
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: transparent;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.home-group-tabs button:hover {
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+:root[data-appearance="dark"] .home-group-tabs button:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.home-group-tabs button[data-active="true"] {
+  background: #f3f4f6;
+  color: var(--text-primary);
+  font-weight: 750;
+  box-shadow: none;
+}
+
+:root[data-appearance="dark"] .home-group-tabs button[data-active="true"] {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+@media (max-width: 680px) {
+  .overview-card {
+    min-height: 100px;
+    border-radius: 14px;
+    padding: 12px 13px;
+    gap: 8px;
+  }
+
+  .overview-card-value {
+    font-size: 24px;
+  }
+
+  .overview-card[data-metric="online"] .overview-card-value {
+    font-size: 21px;
+  }
+
+  .overview-card[data-metric="online"] .overview-card-unit {
+    font-size: 11px;
+  }
+
+  .overview-card-footer {
+    gap: 6px;
+  }
+
+  .overview-card-sub {
+    font-size: 11px;
+    font-weight: 620;
+  }
+
+  .overview-card-sub-full {
+    display: none;
+  }
+
+  .overview-card-sub-compact {
+    display: inline;
+  }
+
+  .overview-card-caption {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 560px) {
+  .home-group-tabs {
+    width: 100%;
+    border-radius: 14px;
+  }
+
+  .home-group-tabs button {
+    min-height: 30px;
+    max-width: 200px;
+    padding: 0 10px;
+    font-size: 11px;
+  }
+}
+
+/* 地区筛选栏：流式胶囊标签组，去除多余内层厚重大框 */
+.home-region-bar {
+  margin-bottom: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.home-region-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.home-region-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 160ms ease;
+}
+
+:root[data-appearance="dark"] .home-region-chip {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.home-region-chip:hover {
+  color: var(--text-primary);
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.14);
+}
+
+:root[data-appearance="dark"] .home-region-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: var(--text-primary);
+}
+
+.home-region-chip[data-active="true"] {
+  background: color-mix(in srgb, var(--accent-500) 14%, #ffffff);
+  color: var(--accent-500, #3b82f6);
+  border-color: color-mix(in srgb, var(--accent-500) 45%, transparent);
+  box-shadow: 0 0 10px -2px color-mix(in srgb, var(--accent-500) 25%, transparent);
+  font-weight: 700;
+}
+
+:root[data-appearance="dark"] .home-region-chip[data-active="true"] {
+  background: color-mix(in srgb, var(--accent-500) 22%, rgba(255, 255, 255, 0.06));
+  color: color-mix(in srgb, var(--accent-500) 90%, white);
+  border-color: color-mix(in srgb, var(--accent-500) 50%, transparent);
+  box-shadow: 0 0 12px -2px color-mix(in srgb, var(--accent-500) 35%, transparent);
+}
+
+.home-region-chip-code {
+  letter-spacing: 0.02em;
+}
+
+/* 数量角标:圆角小胶囊 */
+.home-region-chip-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-tertiary);
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition: all 160ms ease;
+}
+
+:root[data-appearance="dark"] .home-region-chip-count {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.home-region-chip[data-active="true"] .home-region-chip-count {
+  background: color-mix(in srgb, var(--accent-500) 25%, transparent);
+  color: var(--accent-500);
+}
+
+:root[data-appearance="dark"] .home-region-chip[data-active="true"] .home-region-chip-count {
+  background: color-mix(in srgb, var(--accent-500) 30%, transparent);
+  color: color-mix(in srgb, var(--accent-500) 95%, white);
+}
+
+@media (max-width: 560px) {
+  .home-region-chip {
+    min-height: 26px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+}
+
+/* 首页顶部为 36px 快捷设置按钮保留最小 48px 控制区：上下各约 6px。
+   iOS PWA 的状态栏安全区由 app-main 统一叠加。 */
+.home-dashboard {
+  padding-top: 0px;
+}
+
+/* 首页控件条复用卡片网格列定义：分组标签落在第一列，排序控件钉在最后一列。 */
+.home-controls-bar {
+  align-items: center;
+}
+
+.home-sort {
+  position: relative;
+}
+
+.home-controls-bar .home-sort {
+  grid-column: -2 / -1;
+  justify-self: end;
+  align-self: center;
+}
+
+.home-sort-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 160ms ease;
+}
+
+:root[data-appearance="dark"] .home-sort-trigger {
+  background: color-mix(in srgb, var(--surface) 60%, var(--surface-elev) 40%);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.home-sort-trigger:hover,
+.home-sort-trigger[aria-expanded="true"] {
+  background: #ffffff;
+  color: var(--text-primary);
+  border-color: rgba(0, 0, 0, 0.14);
+}
+
+:root[data-appearance="dark"] .home-sort-trigger:hover,
+:root[data-appearance="dark"] .home-sort-trigger[aria-expanded="true"] {
+  background: var(--surface-elev);
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--border-strong) 60%, transparent);
+}
+
+/* panel/item 骨架及 hover/激活态与实例切换器共享,见 surface.css 的弹出菜单组选择器;
+   这里只保留排序浮层的差异项。 */
+.home-sort-panel {
+  right: 0;
+  min-width: 180px;
+  /* 移动端不超出视口 */
+  max-width: min(260px, calc(100vw - 32px));
+}
+
+.home-sort-item {
+  gap: 8px;
+}
+
+.home-sort-item-label {
+  flex: 1 1 auto;
+}
+
+.home-sort-item svg {
+  display: block;
+  flex: none;
+}
+
+.home-sort-item[data-active="true"] svg {
+  color: var(--accent-500);
+}
+
+/* 移动端让分组与排序并排；分组可横向滚动，排序保持在右侧。 */
+@media (max-width: 768px) {
+  .home-controls-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .home-controls-bar .home-group-tabs {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+  }
+
+  .home-controls-bar .home-sort {
+    grid-column: auto;
+    align-self: auto;
+    flex: 0 0 auto;
+    margin-inline-start: auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-brand {
+    top: -18px;
+  }
+
+  .home-dashboard {
+    padding-top: 0px;
+  }
+}
+
+/* 迷你档最多 5 列，但任何断点都不允许卡片窄于 260px；断点按页面实际 gutter
+   和列间距反推，避免 1280px 左右被固定列数压到 216px。 */
+.node-grid-mini {
+  grid-template-columns: repeat(5, minmax(var(--mini-card-min-width, 260px), 1fr));
+}
+
+@media (max-width: 1440px) {
+  .node-grid-mini {
+    grid-template-columns: repeat(4, minmax(var(--mini-card-min-width, 260px), 1fr));
+  }
+}
+
+@media (max-width: 1150px) {
+  .node-grid-mini {
+    grid-template-columns: repeat(3, minmax(var(--mini-card-min-width, 260px), 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .node-grid-mini {
+    grid-template-columns: repeat(2, minmax(var(--mini-card-min-width, 260px), 1fr));
+  }
+}
+
+@media (max-width: 580px) {
+  .node-grid-mini {
+    grid-template-columns: minmax(min(100%, var(--mini-card-min-width, 260px)), 1fr);
+  }
+}
+
+/* 迷你与列表档总览卡使用密集变体。 */
+
+/* 核心应用到首页操作按钮：严格遵循高对比度与零抖动 */
+
+/* 当画布有未应用修改时：突出高亮主色状态，坚决使用深纯色底配合纯白字，防止白底白字 */

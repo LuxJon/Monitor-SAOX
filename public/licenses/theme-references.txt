@@ -1,0 +1,20 @@
+Reference themes inspected on 2026-10-20:
+https://github.com/moxuun/monitor-theme-sketchprobe
+Archive SHA-256: b7e29c4279d8fe3daf7a96c322464d2107ce307525741d9c394a3c5d676e752a
+
+https://github.com/8bitNull/monitor-theme-orbit
+Archive SHA-256: ead4579a1436e738ed5cf18352e9e8d942b5bde1cc5c8fadd7228c786f69ce59
+
+https://github.com/agczsz/monitor-miuix
+Archive SHA-256: ddbd6b9ad490fce9c6fc65c1829bafa82053f67bf0f9535fb4657a214410cac6
+
+https://github.com/Gongsc/Theme-Glassmorphism
+Archive SHA-256: 37878fa2cbab4c9b1783af2729abd350170d050bd1c3bcc37fa7b365672f9813
+
+HEX interaction reference: https://hex.monitor-themes.pages.dev/
+No HEX code or assets included.
+
+Natural Earth geometry is public domain; see map-geography.txt.
+Original openlat country coordinates and MIT license are retained.
+Glass surface styling, network gauge presentation and online card presentation
+were adapted to SAO and its existing store; respective MIT notices are included.

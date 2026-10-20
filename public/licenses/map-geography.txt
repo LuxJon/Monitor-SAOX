@@ -1,0 +1,7 @@
+Country boundary data: Natural Earth 1:110m admin 0 countries. Public domain.
+https://www.naturalearthdata.com/about/terms-of-use/
+Quantized paths adapted from moxuun/monitor-theme-sketchprobe/src/map/world.ts
+https://github.com/moxuun/monitor-theme-sketchprobe
+Projection: equirectangular, width 1000, height 389, north 84, south -56.
+Rendered at 0.36 x 140/389 to align with the openlat 360 x 144 map.
+Borders are generalized geographic outlines, not precise facility locations.

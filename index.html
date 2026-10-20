@@ -1,74 +1,131 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" />
-    <title>Komari Monitor</title>
-    <meta name="description" content="A simple server monitor tool." />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#dff8fb" />
+    <meta
+      name="keywords"
+      content="SAOX, Monitor Theme, server monitor, real-time server status, server performance dashboard, monitoring tool" />
+    <meta name="theme-color" content="#f4f5f7" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Komari Monitor" />
-    <style>
-      .legacy-browser-message {
-        display: none;
-        padding: 24px;
-        font:
-          16px/1.6 -apple-system,
-          BlinkMacSystemFont,
-          'Segoe UI',
-          sans-serif;
-      }
-      .no-esm .legacy-browser-message {
-        display: block;
-      }
-    </style>
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="SAOX Monitor Theme" />
+    <link rel="manifest" href="/manifest.json" crossorigin="use-credentials" />
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta property="og:title" content="SAOX Monitor Theme" />
+    <meta property="og:description" content="SAOX Monitor Theme · 极简立体仪表盘主题" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="SAOX Monitor Theme" />
+    <meta name="twitter:description" content="SAOX Monitor Theme · 极简立体仪表盘主题" />
+    <title>SAOX Monitor Theme</title>
+    <meta name="description" content="SAOX Monitor Theme · 极简立体仪表盘主题" />
     <script>
-      ;(function () {
+      (() => {
+        // 超前核心 API 预加载：利用浏览器解析 HTML 与下载 React Bundle 的网络空档期，提前并发拉取关键数据
         try {
-          var root = document.documentElement
-          var css = window.CSS
-          var supportsModernColor =
-            !!css &&
-            css.supports('color', 'oklch(0.5 0.1 120)') &&
-            css.supports('color', 'color-mix(in srgb, red 50%, white)')
-          if (!supportsModernColor) root.classList.add('legacy-webkit')
-          if (!('noModule' in document.createElement('script'))) root.classList.add('no-esm')
-
-          var mode = localStorage.getItem('themeMode')
-          var isDark = mode === 'dark'
-
-          if (mode !== 'dark' && mode !== 'light') {
-            var hour = Number(
-              new Intl.DateTimeFormat('en-US', {
-                hour: '2-digit',
-                hour12: false,
-                timeZone: 'Asia/Shanghai',
-              }).format(new Date()),
-            )
-            if (hour === 24) hour = 0
-            isDark = Number.isFinite(hour) ? hour < 7 || hour >= 19 : true
+          if (typeof window !== "undefined" && typeof fetch === "function") {
+            const search = window.location.search || "";
+            // Mock 纯前端开发预览时跳过预加载，避免打到未启动的本地后端端口
+            if (search.includes("mock=1") || search.includes("mock=true")) return;
+            const p = window.location.pathname || "/";
+            const dir = p.endsWith("/") ? p : p.substring(0, p.lastIndexOf("/") + 1);
+            const prefix = dir === "/" ? "" : dir.replace(/\/+$/, "");
+            window.__EARLY_DATA__ = {
+              me: fetch((prefix ? prefix : "") + "/api/me").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+              nodes: fetch((prefix ? prefix : "") + "/api/nodes").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+            };
           }
+        } catch {}
 
-          root.classList.toggle('dark', isDark)
-          root.style.colorScheme = isDark ? 'dark' : 'light'
-        } catch (error) {
-          document.documentElement.classList.add('dark')
-          document.documentElement.classList.add('legacy-webkit')
-          document.documentElement.style.colorScheme = 'dark'
+        try {
+          const cachedTitle = localStorage.getItem("saox:sitename");
+          if (cachedTitle && cachedTitle.trim()) {
+            document.title = cachedTitle.trim();
+            const setMeta = (sel, val) => {
+              const el = document.querySelector(sel);
+              if (el) el.setAttribute("content", val);
+            };
+            setMeta('meta[name="apple-mobile-web-app-title"]', cachedTitle.trim());
+            setMeta('meta[property="og:title"]', cachedTitle.trim());
+            setMeta('meta[name="twitter:title"]', cachedTitle.trim());
+          }
+          const cachedDesc = localStorage.getItem("saox:description");
+          if (cachedDesc && cachedDesc.trim()) {
+            const setMeta = (sel, val) => {
+              const el = document.querySelector(sel);
+              if (el) el.setAttribute("content", val);
+            };
+            setMeta('meta[name="description"]', cachedDesc.trim());
+            setMeta('meta[property="og:description"]', cachedDesc.trim());
+            setMeta('meta[name="twitter:description"]', cachedDesc.trim());
+          }
+        } catch {}
+        const appearances = new Set(["system", "light", "dark"]);
+        const readAppearance = (key) => {
+          const raw = localStorage.getItem(key);
+          if (raw == null) return null;
+          let value = raw;
+          try {
+            value = JSON.parse(raw);
+          } catch {}
+          if (!appearances.has(value)) return null;
+          const normalized = JSON.stringify(value);
+          if (raw !== normalized) localStorage.setItem(key, normalized);
+          return value;
+        };
+
+        let appearance = "system";
+        try {
+          appearance = readAppearance("saox:appearance") ?? readAppearance("saox:appearance-default") ?? "system";
+        } catch {
+          appearance = "system";
         }
-      })()
+        const resolved =
+          appearance === "system"
+            ? window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light"
+            : appearance;
+        document.documentElement.dataset.appearance = resolved;
+        document.documentElement.style.colorScheme = resolved;
+        const isDark = resolved === "dark";
+        const color = isDark ? "#09090b" : "#f4f5f7";
+        document.documentElement.style.backgroundColor = color;
+        const metas = document.querySelectorAll('meta[name="theme-color"]');
+        metas.forEach((el) => el.remove());
+        const meta = document.createElement("meta");
+        meta.name = "theme-color";
+        meta.content = color;
+        document.head.appendChild(meta);
+        const statusMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+        if (statusMeta) {
+          statusMeta.content = isDark ? "black-translucent" : "default";
+        }
+
+        try {
+          const rawDepth = localStorage.getItem("saox:dark-depth");
+          if (rawDepth != null) {
+            const parsedDepth = Number(rawDepth);
+            const darkDepth = Number.isFinite(parsedDepth)
+              ? Math.min(100, Math.max(0, Math.round(parsedDepth)))
+              : 0;
+            if (darkDepth > 0) {
+              document.documentElement.style.setProperty(
+                "--dark-depth",
+                String(darkDepth),
+              );
+            } else {
+              document.documentElement.style.removeProperty("--dark-depth");
+            }
+          }
+        } catch {}
+      })();
     </script>
   </head>
-
   <body>
-    <div class="legacy-browser-message" role="alert">
-      当前 iOS 浏览器内核版本过低，请升级到 iOS 15.4 或更高版本后访问。
-    </div>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
+    <div id="root" class="relative z-30"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

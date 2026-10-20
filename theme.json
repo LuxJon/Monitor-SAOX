@@ -1,0 +1,278 @@
+{
+  "name": "SAOX",
+  "short": "saox",
+  "description": "交互点阵世界地图、液态玻璃监控卡片与三网延迟；移动端优先展示地图。基于 SAO 定制。",
+  "version": "1.2.3",
+  "author": "LuxJon",
+  "url": "https://github.com/LuxJon/Monitor-SAOX",
+  "config": [
+    {
+      "type": "title",
+      "label": "首页总览"
+    },
+    {
+      "key": "defaultAppearance",
+      "type": "select",
+      "label": "默认色彩模式",
+      "default": "system",
+      "options": [
+        {
+          "value": "system",
+          "label": "跟随系统"
+        },
+        {
+          "value": "dark",
+          "label": "深色护眼"
+        },
+        {
+          "value": "light",
+          "label": "浅色明亮"
+        }
+      ]
+    },
+    {
+      "key": "showHomeOverview",
+      "type": "boolean",
+      "label": "显示点阵地图与六项监控状态",
+      "help": "完整展示交互地图、内存、剩余价值、实时网速、硬盘、累计流量与节点情况。",
+      "default": true
+    },
+    {
+      "key": "overviewFollowGroup",
+      "type": "boolean",
+      "label": "地图与状态跟随分组",
+      "help": "开启后统计当前分组；点击节点情况卡片可筛选离线节点。",
+      "default": false
+    },
+    {
+      "type": "title",
+      "label": "节点卡片"
+    },
+    {
+      "key": "desktopNodeViewMode",
+      "type": "select",
+      "label": "桌面端默认卡片视图",
+      "default": "compact",
+      "options": [
+        {
+          "value": "large",
+          "label": "标准网格 (Large)"
+        },
+        {
+          "value": "compact",
+          "label": "紧凑网格 (Compact)"
+        },
+        {
+          "value": "mini",
+          "label": "极简胶囊 (Mini)"
+        },
+        {
+          "value": "list",
+          "label": "清单列表 (List)"
+        }
+      ]
+    },
+    {
+      "key": "mobileNodeViewMode",
+      "type": "select",
+      "label": "移动端默认卡片视图",
+      "default": "compact",
+      "options": [
+        {
+          "value": "compact",
+          "label": "紧凑网格 (Compact)"
+        },
+        {
+          "value": "large",
+          "label": "标准网格 (Large)"
+        },
+        {
+          "value": "mini",
+          "label": "极简胶囊 (Mini)"
+        }
+      ]
+    },
+    {
+      "key": "showGroupTabs",
+      "type": "boolean",
+      "label": "显示分组筛选栏",
+      "help": "在卡片列表上方展示分组 Tab 快速筛选",
+      "default": true
+    },
+    {
+      "key": "showUngroupedTab",
+      "type": "boolean",
+      "label": "在分组栏显示“未分组”标签",
+      "help": "当存在未指定分组的节点时，在分组栏提供“未分组”快捷标签（关闭后未分组节点仍在“全部”中可见）",
+      "default": false
+    },
+    {
+      "key": "showRegionBar",
+      "type": "boolean",
+      "label": "显示地区筛选栏",
+      "help": "在卡片列表上方展示国旗地区快捷标签",
+      "default": true
+    },
+    {
+      "key": "showCardGroup",
+      "type": "boolean",
+      "label": "在卡片上显示节点分组标签",
+      "help": "在卡片副标题处标明其所属分组",
+      "default": true
+    },
+    {
+      "key": "compactShowTrafficTotal",
+      "type": "boolean",
+      "label": "小卡片显示累计流量",
+      "help": "在紧凑视图中展示月度或累计出入站流量",
+      "default": true
+    },
+    {
+      "key": "compactShowBilling",
+      "type": "boolean",
+      "label": "小卡片显示计费周期",
+      "help": "在紧凑视图中保留周期标注",
+      "default": true
+    },
+    {
+      "key": "compactShowUptime",
+      "type": "boolean",
+      "label": "小卡片显示在线时长",
+      "help": "在紧凑视图中展示系统运行时间",
+      "default": true
+    },
+    {
+      "key": "showConnections",
+      "type": "boolean",
+      "label": "显示 TCP/UDP 连接数",
+      "help": "在卡片网络区域标注实时活跃连接统计",
+      "default": false
+    },
+    {
+      "key": "showTodayTrafficPopover",
+      "type": "boolean",
+      "label": "显示当日流量与峰值按钮",
+      "help": "在节点卡片上显示扩展统计按钮，点击或悬停可查看当日出入站流量与峰值带宽",
+      "default": true
+    },
+    {
+      "key": "homeSortField",
+      "type": "select",
+      "label": "首页默认排序",
+      "default": "default",
+      "options": [
+        {
+          "value": "default",
+          "label": "后台权重"
+        },
+        {
+          "value": "name",
+          "label": "名称"
+        },
+        {
+          "value": "speed",
+          "label": "实时网速"
+        },
+        {
+          "value": "traffic",
+          "label": "累计流量"
+        },
+        {
+          "value": "price",
+          "label": "价格"
+        }
+      ]
+    },
+    {
+      "key": "homeSortDirection",
+      "type": "select",
+      "label": "默认排序方向",
+      "default": "asc",
+      "options": [
+        {
+          "value": "asc",
+          "label": "升序"
+        },
+        {
+          "value": "desc",
+          "label": "降序"
+        }
+      ]
+    },
+    {
+      "type": "title",
+      "label": "三网延迟"
+    },
+    {
+      "key": "enableHomepageMultiPing",
+      "type": "boolean",
+      "label": "首页三线路延迟（未选任务时自动识别）",
+      "help": "自动识别电信、联通、移动。任务选择、绑定节点及延迟/丢包色阶请在前台 SAOX 主题设置的“三网延迟”中调整。",
+      "default": true
+    },
+    {
+      "type": "title",
+      "label": "资产统计"
+    },
+    {
+      "key": "costRateApiUrl",
+      "type": "string",
+      "label": "实时汇率 API 接口 URL",
+      "default": "https://api.frankfurter.dev/v2/rates?base=USD",
+      "help": "留空使用官方默认免费公共汇率接口"
+    },
+    {
+      "type": "title",
+      "label": "访问权限"
+    },
+    {
+      "key": "enableAdminButton",
+      "type": "boolean",
+      "label": "显示前台管理员登录入口",
+      "help": "在页面右上角展示登录/管理面板快捷入口",
+      "default": true
+    },
+    {
+      "key": "adminNickname",
+      "type": "string",
+      "label": "管理员显示昵称",
+      "default": "",
+      "help": "登录后在页面顶部总览问候语处展示（如：早上好，jerry），留空默认为 Admin"
+    },
+    {
+      "key": "showTrafficPageButton",
+      "type": "boolean",
+      "label": "显示今日流量页入口按钮",
+      "help": "在首页今日流量卡片右上角显示进入流量统计页的图表按钮；若希望访客可见需同步开启「向访客显示流量入口按钮」",
+      "default": true
+    },
+    {
+      "key": "showTrafficPageForGuests",
+      "type": "boolean",
+      "label": "向访客显示流量入口按钮",
+      "help": "默认关闭。关闭时未登录访客隐藏今日流量卡片右上角图表按钮，保持卡片无图标统一纯净；开启后访客亦可在卡片右上角点击进入流量统计页",
+      "default": false
+    },
+    {
+      "key": "showCostSummary",
+      "type": "boolean",
+      "label": "显示资产统计页入口按钮",
+      "help": "在剩余价值状态卡显示资产统计入口。",
+      "default": true
+    },
+    {
+      "key": "showCostSummaryFloatingButton",
+      "type": "boolean",
+      "label": "显示资产看板悬浮按钮",
+      "help": "备用悬浮入口（在页面右下角显示）：仅在关闭了「资产总值」卡片右上角按钮或关闭了「显示顶部总览栏」时生效浮现，避免入口重复；同样受访客资产权限控制",
+      "default": true
+    },
+    {
+      "key": "showPriceForGuests",
+      "type": "boolean",
+      "label": "向访客公开价格与资产",
+      "help": "默认关闭。独立控制财务数据是否对访客脱敏：开启后访客可见节点价格与资产总额并解锁资产入口；关闭时对访客隐藏价格并将资产显示为保密",
+      "default": false
+    }
+  ]
+}

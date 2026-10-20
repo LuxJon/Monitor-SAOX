@@ -1,0 +1,235 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  formatBytes,
+  formatByteRate,
+  formatByteRateLabel,
+  formatClockTime,
+  formatCompactOfflineDuration,
+  formatExpireDays,
+  formatOfflineDuration,
+  formatTrafficRateLabel,
+  formatUptimeDays,
+  getExpireDaysRemaining,
+  parseTags,
+  resolveExpireTimestamp,
+  trimFixed,
+} from "@/utils/format";
+
+const KB = 1024;
+const MB = 1024 * 1024;
+const GB = 1024 * 1024 * 1024;
+
+describe("formatBytes", () => {
+  it("returns '0 B' for empty / non-positive / non-finite input", () => {
+    expect(formatBytes(0)).toBe("0 B");
+    expect(formatBytes(null)).toBe("0 B");
+    expect(formatBytes(undefined)).toBe("0 B");
+    expect(formatBytes(-5)).toBe("0 B");
+    expect(formatBytes(Number.NaN)).toBe("0 B");
+    // 防回归:Infinity 不能输出成 "Infinity PB"
+    expect(formatBytes(Number.POSITIVE_INFINITY)).toBe("0 B");
+  });
+
+  it("rounds raw bytes with no decimals", () => {
+    expect(formatBytes(512)).toBe("512 B");
+    expect(formatBytes(1023)).toBe("1023 B");
+  });
+
+  it("scales up and adapts precision by magnitude", () => {
+    expect(formatBytes(KB)).toBe("1.00 KB");
+    expect(formatBytes(1.5 * KB)).toBe("1.50 KB");
+    expect(formatBytes(MB)).toBe("1.00 MB");
+    expect(formatBytes(100 * MB)).toBe("100 MB");
+    expect(formatBytes(2.5 * GB)).toBe("2.50 GB");
+  });
+});
+
+describe("formatClockTime", () => {
+  it("formats local hour and minute only", () => {
+    expect(formatClockTime(new Date(2026, 7, 6, 14, 32).getTime())).toBe("14:32");
+    expect(formatClockTime(new Date(2026, 7, 6, 9, 5).getTime())).toBe("09:05");
+  });
+
+  it("returns an em dash for missing or non-finite timestamps", () => {
+    expect(formatClockTime(null)).toBe("—");
+    expect(formatClockTime(undefined)).toBe("—");
+    expect(formatClockTime(Number.NaN)).toBe("—");
+    expect(formatClockTime(0)).not.toBe("—");
+  });
+});
+
+describe("formatTrafficRate", () => {
+  it("returns a zeroed bps label for non-positive / non-finite input", () => {
+    expect(formatTrafficRateLabel(0)).toBe("0 bps");
+    expect(formatTrafficRateLabel(null)).toBe("0 bps");
+    expect(formatTrafficRateLabel(Number.POSITIVE_INFINITY)).toBe("0 bps");
+  });
+
+  it("converts bytes/sec to bit-rate units", () => {
+    // 1 MB/s = 8 Mbps
+    expect(formatTrafficRateLabel(1_000_000)).toBe("8 Mbps");
+    // 125 MB/s = 1 Gbps
+    expect(formatTrafficRateLabel(125_000_000)).toBe("1 Gbps");
+  });
+});
+
+describe("formatByteRate / formatByteRateLabel", () => {
+  it("returns a zeroed B/s display for non-positive / non-finite input", () => {
+    expect(formatByteRate(0)).toEqual({ value: "0", unit: "B/s" });
+    expect(formatByteRate(null)).toEqual({ value: "0", unit: "B/s" });
+    expect(formatByteRate(Number.POSITIVE_INFINITY)).toEqual({ value: "0", unit: "B/s" });
+  });
+
+  it("uses the byte (1024) ladder suffixed with /s", () => {
+    expect(formatByteRate(512)).toEqual({ value: "512", unit: "B/s" });
+    expect(formatByteRateLabel(KB)).toBe("1.00 KB/s");
+    expect(formatByteRateLabel(MB)).toBe("1.00 MB/s");
+    expect(formatByteRateLabel(2.5 * GB)).toBe("2.50 GB/s");
+  });
+});
+
+describe("finite formatting", () => {
+  it("does not expose non-finite values", () => {
+    expect(trimFixed(Number.POSITIVE_INFINITY, 1)).toBe("0");
+    expect(formatUptimeDays(Number.POSITIVE_INFINITY)).toEqual({ value: "—", unit: "" });
+    expect(getExpireDaysRemaining("2026-06-14T12:00:00.000Z", Infinity)).toBeNull();
+  });
+});
+
+describe("getExpireDaysRemaining / formatExpireDays", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-13T12:00:00.000Z"));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function inDays(days: number, extraHours = 0) {
+    const ts = Date.now() + days * 86_400_000 + extraHours * 3_600_000;
+    return new Date(ts).toISOString();
+  }
+
+  it("returns null for missing / unparseable input", () => {
+    expect(getExpireDaysRemaining(null)).toBeNull();
+    expect(getExpireDaysRemaining("not-a-date")).toBeNull();
+    expect(formatExpireDays(null)).toEqual({ value: "—", unit: "", tone: "none" });
+  });
+
+  it("treats Komari 'no expiry' sentinels as no-expiry, not as 已过期", () => {
+    // 防回归:Go 零值时间和数字 0 / -1 这些哨兵值以前会被解析成 1 年 / 2000 / 2001 年,
+    // 把永不过期的节点显示成"已过期"
+    for (const sentinel of ["0001-01-01T00:00:00Z", "0", "-1", ""]) {
+      expect(getExpireDaysRemaining(sentinel)).toBeNull();
+      expect(formatExpireDays(sentinel)).toEqual({ value: "—", unit: "", tone: "none" });
+    }
+  });
+
+  it("reads a bare positive number as a unix timestamp (seconds or ms)", () => {
+    const secs = Math.floor((Date.now() + 10 * 86_400_000) / 1000);
+    expect(getExpireDaysRemaining(String(secs))).toBe(10);
+    const ms = Date.now() + 5 * 86_400_000;
+    expect(getExpireDaysRemaining(String(ms))).toBe(5);
+    // 哨兵值解析为"无时间戳"
+    expect(resolveExpireTimestamp("0001-01-01T00:00:00Z")).toBeNull();
+    expect(resolveExpireTimestamp(0)).toBeNull();
+    expect(resolveExpireTimestamp(-1)).toBeNull();
+  });
+
+  it("maps day buckets to tones", () => {
+    expect(formatExpireDays(inDays(60))).toEqual({ value: "60", unit: "天", tone: "ok" });
+    expect(formatExpireDays(inDays(15))).toEqual({ value: "15", unit: "天", tone: "warn" });
+    expect(formatExpireDays(inDays(3))).toEqual({ value: "3", unit: "天", tone: "critical" });
+  });
+
+  it("treats >100y as a long-term purchase", () => {
+    expect(formatExpireDays(inDays(40_000))).toEqual({ value: "长期", unit: "", tone: "long" });
+  });
+
+  it("prioritizes Hub's expires_in over local clock calculation (Monitor 1.2.0+ & 1.3.2)", () => {
+    // 即使本地时钟算出来已过期，若 hub 返回 expires_in: 0，说明今天到期
+    expect(getExpireDaysRemaining("2026-06-13T00:00:00.000Z", undefined, 0)).toBe(0);
+    expect(formatExpireDays("2026-06-13T00:00:00.000Z", undefined, 0)).toEqual({
+      value: "今日",
+      unit: "",
+      tone: "critical",
+    });
+
+    // 正数天数
+    expect(getExpireDaysRemaining(null, undefined, 45)).toBe(45);
+    expect(formatExpireDays(null, undefined, 45)).toEqual({
+      value: "45",
+      unit: "天",
+      tone: "ok",
+    });
+
+    // 负数已过期天数
+    expect(getExpireDaysRemaining(null, undefined, -3)).toBe(-3);
+    expect(formatExpireDays(null, undefined, -3)).toEqual({
+      value: "已过期",
+      unit: "",
+      tone: "critical",
+    });
+
+    // null 表示没有到期日
+    expect(getExpireDaysRemaining(null, undefined, null)).toBeNull();
+    expect(formatExpireDays(null, undefined, null)).toEqual({
+      value: "—",
+      unit: "",
+      tone: "none",
+    });
+  });
+
+  it("handles the today / expired boundary", () => {
+    // 未来约 1 小时会向下取整成剩余 0 天
+    expect(formatExpireDays(inDays(0, 1))).toEqual({ value: "今日", unit: "", tone: "critical" });
+    // 已是过去时间
+    expect(formatExpireDays(inDays(-2))).toEqual({ value: "已过期", unit: "", tone: "critical" });
+  });
+});
+
+describe("parseTags", () => {
+  it("returns [] for empty input", () => {
+    expect(parseTags(null)).toEqual([]);
+    expect(parseTags("")).toEqual([]);
+  });
+
+  it("parses explicit <color> suffixes and lowercases them", () => {
+    expect(parseTags("VIP<RED>;Pro<Blue>")).toEqual([
+      { label: "VIP", color: "red" },
+      { label: "Pro", color: "blue" },
+    ]);
+  });
+
+  it("infers colors for plain tags by known keywords", () => {
+    expect(parseTags("CN2GIA")).toEqual([{ label: "CN2GIA", color: "blue" }]);
+    expect(parseTags("4837")).toEqual([{ label: "4837", color: "green" }]);
+    expect(parseTags("Random")).toEqual([{ label: "Random", color: "violet" }]);
+  });
+});
+
+describe("formatOfflineDuration (Monitor 1.4.0+ spec)", () => {
+  it("prioritizes last_seen_ago from hub", () => {
+    expect(formatOfflineDuration(25)).toBe("刚刚离线");
+    expect(formatOfflineDuration(120)).toBe("离线 2 分钟");
+    expect(formatOfflineDuration(3600)).toBe("离线 1 小时");
+    expect(formatOfflineDuration(86400 * 3)).toBe("离线 3 天");
+  });
+
+  it("handles null / never reported as null", () => {
+    expect(formatOfflineDuration(null)).toBeNull();
+  });
+
+  it("falls back to local diff when last_seen_ago is undefined (pre-1.4.0 hub)", () => {
+    const nowMs = 1700000000 * 1000;
+    expect(formatOfflineDuration(undefined, 1700000000 - 30, nowMs)).toBe("刚刚离线");
+    expect(formatOfflineDuration(undefined, 1700000000 - 600, nowMs)).toBe("离线 10 分钟");
+  });
+
+  it("formats compact offline duration", () => {
+    expect(formatCompactOfflineDuration(20)).toBe("刚刚离线");
+    expect(formatCompactOfflineDuration(300)).toBe("离线 5m");
+    expect(formatCompactOfflineDuration(7200)).toBe("离线 2h");
+    expect(formatCompactOfflineDuration(86400 * 2)).toBe("离线 2d");
+  });
+});

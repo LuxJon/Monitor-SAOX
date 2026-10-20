@@ -1,0 +1,23 @@
+/* Translucent surfaces inspired by Gongsc/Theme-Glassmorphism. */
+:root { --liquid-surface: rgba(241,245,249,.66); --liquid-border: rgba(255,255,255,.8); --liquid-shadow: 0 8px 28px rgba(15,23,42,.08), inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 0 rgba(148,163,184,.12); --liquid-highlight: rgba(255,255,255,.5); }
+:root[data-appearance="dark"] { --liquid-surface: rgba(18,24,35,.64); --liquid-border: rgba(255,255,255,.13); --liquid-shadow: 0 8px 30px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.14), inset 0 -1px 0 rgba(255,255,255,.03); --liquid-highlight: rgba(255,255,255,.055); }
+.home-dashboard { isolation: isolate; }
+.home-dashboard::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(ellipse 70% 600px at 10% 400px, rgba(56,189,248,.09), transparent), radial-gradient(ellipse 60% 700px at 90% 650px, rgba(139,92,246,.085), transparent); }
+:root[data-appearance] :is(.map-stat-card,.server-card,.compact-node-card,.mini-node-card,.world-map-glass) {
+  background-color: var(--liquid-surface);
+  background-image: linear-gradient(135deg, var(--liquid-highlight), transparent 46%, transparent 70%, var(--liquid-highlight));
+  border: 1px solid var(--liquid-border);
+  box-shadow: var(--liquid-shadow);
+  -webkit-backdrop-filter: blur(14px) saturate(145%);
+  backdrop-filter: blur(14px) saturate(145%);
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+.world-map-glass { background-color: var(--liquid-surface); }
+.compact-node-card,.server-card,.mini-node-card { border-radius: 20px; }
+@media (hover: hover) {
+  :root[data-appearance] :is(.map-stat-card,.server-card,.compact-node-card,.mini-node-card):hover { background-color: var(--liquid-surface); background-image: linear-gradient(135deg, var(--liquid-highlight), transparent 65%); border-color: color-mix(in srgb, var(--accent-500) 24%, var(--liquid-border)); box-shadow: var(--liquid-shadow), 0 4px 22px color-mix(in srgb, var(--accent-500) 7%, transparent); }
+}
+@supports not (backdrop-filter: blur(1px)) { .map-stat-card,.server-card,.compact-node-card,.mini-node-card { background-color: color-mix(in srgb, var(--bg-0) 93%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .map-stat-card,.server-card,.compact-node-card,.mini-node-card { transition: none; } }
+
+:root[data-appearance] :is(.server-card,.compact-node-card,.mini-node-card).is-offline { background-color: var(--liquid-surface); background-image: linear-gradient(135deg, var(--liquid-highlight), transparent 65%); border-color: var(--liquid-border); box-shadow: var(--liquid-shadow); filter: none; opacity: .78; }

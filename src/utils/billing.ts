@@ -1,0 +1,343 @@
+import { getExpireDaysRemaining, LONG_TERM_EXPIRE_DAYS } from "@/utils/format";
+
+const INT_PRICE_FORMATTER = new Intl.NumberFormat("zh-CN", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+const DECIMAL_PRICE_FORMATTER = new Intl.NumberFormat("zh-CN", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+const COMPACT_PRICE_FORMATTER = new Intl.NumberFormat("zh-CN", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
+export const COMMON_CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: "$",
+  "US$": "$",
+  "$US": "$",
+  "USD$": "$",
+  "$USD": "$",
+  CAD: "C$",
+  "C$": "C$",
+  EUR: "€",
+  GBP: "£",
+  JPY: "¥",
+  CNY: "¥",
+  RMB: "¥",
+  "CN¥": "¥",
+  HKD: "HK$",
+  "HK$": "HK$",
+  TWD: "NT$",
+  "NT$": "NT$",
+  AUD: "A$",
+  "A$": "A$",
+  SGD: "S$",
+  "S$": "S$",
+  NZD: "NZ$",
+  "NZ$": "NZ$",
+  KRW: "₩",
+  RUB: "₽",
+  THB: "฿",
+};
+
+export function resolveCurrencySymbol(currency?: string | null): string {
+  if (!currency) return "¥";
+  const trimmed = currency.trim();
+  if (!trimmed) return "¥";
+  return COMMON_CURRENCY_SYMBOLS[trimmed.toUpperCase()] || trimmed;
+}
+
+/**
+ * 官方 Monitor 1.3.2 规范金额格式化：
+ * 地区写死 zh-CN：显示不随访客的浏览器语言变，美元、港币写作 US$、HK$，日元写作 JP¥，不和人民币的 ¥ 混淆；
+ * hub 1.3.1 起货币是三个大写字母，更早的版本存下的值可能不是，用 Intl.NumberFormat 必须兜住它抛出的错误。
+ */
+export function formatMoney(amount: number, currency: string): string {
+  if (!Number.isFinite(amount)) return "—";
+  const curr = currency?.trim() || "CNY";
+  try {
+    return new Intl.NumberFormat("zh-CN", {
+      style: "currency",
+      currency: curr,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    // hub 1.3.1 之前存下的值，可能不是三个字母
+    return `${curr} ${amount.toFixed(2)}`;
+  }
+}
+
+function formatPriceNumber(value: number, compact = false) {
+  if (compact) {
+    return COMPACT_PRICE_FORMATTER.format(value);
+  }
+  return (Number.isInteger(value) ? INT_PRICE_FORMATTER : DECIMAL_PRICE_FORMATTER).format(value);
+}
+
+function isLongTermExpire(value: string | number | null | undefined) {
+  if (value == null) return false;
+  const days = getExpireDaysRemaining(value);
+  return days != null && days > LONG_TERM_EXPIRE_DAYS;
+}
+
+type BillingCycleKind = "month" | "quarter" | "halfYear" | "year" | "lifetime";
+
+/** 中文数字 → 年数，覆盖 Komari 后台的「两年」到「五年」。 */
+const CHINESE_YEAR_WORDS: Record<string, number> = {
+  "一": 1,
+  "两": 2,
+  "二": 2,
+  "三": 3,
+  "四": 4,
+  "五": 5,
+};
+
+export const CHINESE_YEAR_NAMES: Record<number, string> = {
+  1: "年",
+  2: "两年",
+  3: "三年",
+  4: "四年",
+  5: "五年",
+};
+
+export const CHINESE_YEAR_PAY_NAMES: Record<number, string> = {
+  1: "年付",
+  2: "两年付",
+  3: "三年付",
+  4: "四年付",
+  5: "五年付",
+};
+
+/**
+ * 官方 1.3.2 规范付款周期转月数：
+ * monthly/quarterly/semiannual/yearly/biennial/triennial 对应 1/3/6/12/24/36 个月；
+ * <n>m 对应 n 个月（1–1200）；once 对应 0；无法识别的返回 NaN
+ */
+export function parseBillingMonths(cycle: string): number {
+  const named: Record<string, number> = {
+    monthly: 1,
+    quarterly: 3,
+    semiannual: 6,
+    yearly: 12,
+    biennial: 24,
+    triennial: 36,
+  };
+  const trimmed = (cycle || "").trim().toLowerCase();
+  if (trimmed === "once" || trimmed === "lifetime") return 0;
+  if (named[trimmed] !== undefined) return named[trimmed];
+  const match = /^(\d+)m$/.exec(trimmed);
+  return match ? Number(match[1]) : NaN;
+}
+
+/**
+ * 把自由文本的账单周期关键词(须预先 lowercase/trim)归类成标准周期,识别不出时返回 null。
+ * 这里的标签格式化和 utils/cost.ts 里的天数解析共用它,让这套正则只存在一处。
+ */
+export function classifyBillingCycleWord(
+  normalized: string,
+): { kind: BillingCycleKind; years?: number; months?: number } | null {
+  if (/^(monthly|month|mo|月|每月|月付)$/.test(normalized)) return { kind: "month", months: 1 };
+  if (/^(quarterly|quarter|季|季度|每季|季付)$/.test(normalized)) return { kind: "quarter", months: 3 };
+  if (/^(semi-?annual(ly)?|half[-_]?year(ly)?|半年|半年付)$/.test(normalized)) {
+    return { kind: "halfYear", months: 6 };
+  }
+  if (/^(annual(ly)?|yearly|year|yr|年|一年|每年|年付)$/.test(normalized)) {
+    return { kind: "year", years: 1 };
+  }
+  if (/^(biennial|两年|两年付|2年|2年付)$/.test(normalized)) {
+    return { kind: "year", years: 2 };
+  }
+  if (/^(triennial|三年|三年付|3年|3年付)$/.test(normalized)) {
+    return { kind: "year", years: 3 };
+  }
+  if (/^(lifetime|once|one-time|永久|一次性|一次性付费|买断)$/.test(normalized)) {
+    return { kind: "lifetime" };
+  }
+
+  // 匹配 Hub 1.3.1 的 `<n>m` 格式（如 18m, 60m 等）以及带单位的月数定义
+  const monthMatch = /^(\d+)[-_\s]*(m|mo|mos|month|months|月|个月|个月付|月付)$/.exec(normalized);
+  if (monthMatch) {
+    const m = Number(monthMatch[1]);
+    if (m > 0) {
+      if (m % 12 === 0) {
+        return { kind: "year", years: m / 12 };
+      }
+      if (m === 1) return { kind: "month", months: 1 };
+      if (m === 3) return { kind: "quarter", months: 3 };
+      if (m === 6) return { kind: "halfYear", months: 6 };
+      return { kind: "month", months: m };
+    }
+  }
+
+  // 两年 / 三年 / 四年 / 五年 / 两年付 / 三年付
+  const chineseYears = /^([一两二三四五])年(付)?$/.exec(normalized);
+  if (chineseYears) {
+    return { kind: "year", years: CHINESE_YEAR_WORDS[chineseYears[1]!]! };
+  }
+
+  // 2年 / 3年 / 2年付 / 3年付 / two_years / 3 years
+  const numberYears = /^(\d+)[-_\s]*(年|年付|y|yr|yrs|year|years)$/.exec(normalized);
+  if (numberYears) {
+    return { kind: "year", years: Number(numberYears[1]) };
+  }
+
+  const wordYears = /^(two|three|four|five)[-_\s]*years?$/.exec(normalized);
+  if (wordYears) {
+    const years = { two: 2, three: 3, four: 4, five: 5 }[wordYears[1]!]!;
+    return { kind: "year", years };
+  }
+
+  return null;
+}
+
+export interface NormalizedBillingCycle {
+  kind: BillingCycleKind | "days";
+  /** 摊销天数;lifetime 为 -1 哨兵。 */
+  days: number;
+  /** kind === "year" 时的整年数(365/360 天均视为 1 年)。 */
+  years?: number;
+  /** kind === "month" 时的自定义月数（默认 1）。 */
+  months?: number;
+}
+
+/**
+ * 严格按照 Komari / Monitor 后台计费周期规则进行归一化：
+ * 1. 按预设周期（日历续费）：数值相近时按对应日历周期计算
+ *    常用数值：30（月）、92（季）、180/182（半年）、365（年）、730（两年）、1095（三年）等
+ * 2. 按自定义天数：当输入其他天数时（如 7, 45, 100），严格按天数续费
+ * 3. 一次性付费：输入 -1 表示一次性付费
+ * 4. 支持 Hub 1.3.1 的 `<n>m` 格式（如 18m, 60m）与 biennial/triennial
+ */
+export function normalizeBillingCycle(
+  value: string | number | null | undefined,
+): NormalizedBillingCycle {
+  const raw = String(value ?? "").trim();
+  const numeric = Number(raw);
+
+  if (raw !== "" && Number.isFinite(numeric)) {
+    if (numeric === -1) return { kind: "lifetime", days: -1 };
+
+    // Komari 后台预设方案的相近数值匹配
+    if (numeric >= 28 && numeric <= 31) return { kind: "month", days: 30, months: 1 };
+    if (numeric >= 89 && numeric <= 93) return { kind: "quarter", days: 90, months: 3 };
+    if (numeric >= 180 && numeric <= 184) return { kind: "halfYear", days: 180, months: 6 };
+    if (numeric >= 360 && numeric <= 366) return { kind: "year", days: 365, years: 1 };
+    if (numeric >= 725 && numeric <= 735) return { kind: "year", days: 730, years: 2 };
+    if (numeric >= 1090 && numeric <= 1100) return { kind: "year", days: 1095, years: 3 };
+    if (numeric >= 1455 && numeric <= 1465) return { kind: "year", days: 1460, years: 4 };
+    if (numeric >= 1820 && numeric <= 1830) return { kind: "year", days: 1825, years: 5 };
+
+    if (numeric > 0 && numeric % 365 === 0) {
+      const years = Math.round(numeric / 365);
+      return { kind: "year", days: numeric, years };
+    }
+    if (numeric > 0 && numeric % 360 === 0) {
+      const years = Math.round(numeric / 360);
+      return { kind: "year", days: numeric, years };
+    }
+
+    if (numeric > 0) return { kind: "days", days: numeric };
+  }
+
+  const word = classifyBillingCycleWord(raw.toLowerCase());
+  switch (word?.kind) {
+    case "month": {
+      const months = word.months && word.months > 0 ? word.months : 1;
+      return { kind: "month", days: months * 30, months };
+    }
+    case "quarter":
+      return { kind: "quarter", days: 90, months: 3 };
+    case "halfYear":
+      return { kind: "halfYear", days: 180, months: 6 };
+    case "lifetime":
+      return { kind: "lifetime", days: -1 };
+    case "year": {
+      const years = word.years && word.years > 0 ? word.years : 1;
+      return { kind: "year", days: years * 365, years };
+    }
+    default:
+      return { kind: "year", days: 365, years: 1 };
+  }
+}
+
+/** 格式化节点价格后的计费周期后缀（如 ¥71.08/三年、¥30/月 或 ¥99/18个月） */
+export function formatBillingCycle(value: string | number | null | undefined) {
+  const cycle = normalizeBillingCycle(value);
+  switch (cycle.kind) {
+    case "lifetime":
+      return "一次性";
+    case "month":
+      return cycle.months && cycle.months > 1 ? `${cycle.months}个月` : "月";
+    case "quarter":
+      return "季";
+    case "halfYear":
+      return "半年";
+    case "year":
+      return CHINESE_YEAR_NAMES[cycle.years ?? 1] || `${cycle.years}年`;
+    case "days":
+      return `${cycle.days}天`;
+  }
+}
+
+/** 格式化紧凑小卡片等高密度场景的周期后缀（如 $71/3年、$5.8/月 或 $99/18月） */
+export function formatCompactBillingCycleText(value: string | number | null | undefined) {
+  const cycle = normalizeBillingCycle(value);
+  switch (cycle.kind) {
+    case "lifetime":
+      return "一次";
+    case "month":
+      return cycle.months && cycle.months > 1 ? `${cycle.months}月` : "月";
+    case "quarter":
+      return "季";
+    case "halfYear":
+      return "半年";
+    case "year":
+      return cycle.years && cycle.years > 1 ? `${cycle.years}年` : "年";
+    case "days":
+      return `${cycle.days}天`;
+  }
+}
+
+export function formatRenewalPrice({
+  price,
+  currency,
+  billing_cycle,
+  expired_at,
+}: {
+  price: number;
+  currency: string;
+  billing_cycle?: string | number | null;
+  expired_at?: string | number | null;
+}) {
+  if (!Number.isFinite(price)) return null;
+  if (price === -1) return "免费";
+  if (price === 0) return isLongTermExpire(expired_at) ? "免费" : null;
+  if (price < 0) return null;
+
+  const symbol = currency?.trim() || "¥";
+  const cycle = formatBillingCycle(billing_cycle);
+  return `${symbol}${formatPriceNumber(price)}/${cycle}`;
+}
+
+export function formatCompactRenewalPrice({
+  price,
+  currency,
+  billing_cycle,
+  expired_at,
+}: {
+  price: number;
+  currency: string;
+  billing_cycle?: string | number | null;
+  expired_at?: string | number | null;
+}) {
+  if (!Number.isFinite(price)) return null;
+  if (price === -1) return "免费";
+  if (price === 0) return isLongTermExpire(expired_at) ? "免费" : null;
+  if (price < 0) return null;
+
+  const symbol = resolveCurrencySymbol(currency);
+  const cycle = formatCompactBillingCycleText(billing_cycle);
+  return `${symbol}${formatPriceNumber(price, true)}/${cycle}`;
+}

@@ -1,92 +1,84 @@
-# Komari Glassmorphism Three-Network
+# SAOX
 
-面向 [Lite](https://github.com/nuomiiiii/Lite) 与 Komari 的毛玻璃监控主题，在原版 Glassmorphism 基础上增加三网延迟、地区筛选和节点标签等功能。
+**SAOX 1.2.3** 是面向 [Monitor 极简探针](https://github.com/monitor-probe/monitor) 的独立主题，由 LuxJon 在 [WAOR/Monitor-SAO](https://github.com/WAOR/Monitor-SAO) 基础上定制。采用交互点阵世界地图、液态玻璃监控状态和三运营商延迟显示。
 
-[![Version](https://img.shields.io/badge/version-v3.4.0-7c3aed.svg)](https://github.com/LuxJon/komari-theme-Glassmorphism-ThreeNetwork/releases/latest)
-[![Vue](https://img.shields.io/badge/Vue-3-42b883.svg)](https://vuejs.org/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+> 安装身份为 `saox`，可与原版 `sao` 同时保留在主题列表中。两个主题的服务端配置和浏览器偏好独立存储。Monitor 每次展示当前选中的一个主题。
 
-## 预览
+![SAOX 桌面预览](docs/desktop.png)
 
-![Komari Glassmorphism Three-Network 预览](docs/preview.png)
+## 使用范围
 
-## 3.4.0 更新
+本仓库是 LuxJon 自用的二次定制版本。构建与发布只更新本仓库的 GitHub Release，不向 `monitor-probe/themes` 提交 PR，不修改公共主题列表，也不申请主题市场收录。保留 MIT 和上游来源说明不代表申请公共收录。
 
-- 适配 Lite 2.3.4 的主题清单、原生后台入口、节点详情导航和公开监控接口。
-- 三网线路改用 Lite 原生 Ping 任务选择器，仅显示后台实际存在的任务，不再列出固定的上海、浙江、广东线路。
-- 保留旧版保存的任务名称或 ID；未选择、任务被删除或配置失效时，自动从现有任务中匹配电信、联通、移动。
-- 将主题设置从九个分类整理为首页、延迟线路、节点与图表、外观、高级五类，保留全部 51 个设置键和原有首页功能。
-- 移除主题内附带的旧 Komari 管理后台、Service Worker 资源和跳转桥接，后台按钮直接进入 Lite 原生 `/admin`。
+## 安装与升级
 
-## Lite 适配说明
+1. 从 [最新 Release](https://github.com/LuxJon/Monitor-SAOX/releases/latest) 下载 **theme.tar.gz**。
+2. 在 Monitor 管理后台的「主题」页面上传安装包，选择并启用 **SAOX**。
+3. 新装后确认站点外观及访客权限；原版 SAO 设置不会自动迁移。更新 SAOX 时保留 `short=saox` 即可沿用配置。
 
-本主题针对 [nuomiiiii/Lite](https://github.com/nuomiiiii/Lite) 2.3.4 完成适配。Lite 是基于 Komari 生态继续开发的版本，支持直接导入本仓库或 Release ZIP。
+安装包必须直接包含 `theme.json`、`preview.png`、`LICENSE`、`THIRD_PARTY_NOTICES.md` 和 `dist/`，不应再套一层文件夹。**源码 ZIP 不能作为主题安装包导入。**
 
-- 主题继续使用 `komari-theme.json`，Lite 会直接识别。
-- 节点详情路由声明为 `/instance/{uuid}`。
-- 延迟线路通过 Lite 的 `pingtasks` 配置控件读取真实任务，不保存虚构线路。
-- 首页、节点详情、价格与到期时间、历史图表、实时指标继续使用公开接口。
-- 管理、账单、账户和系统设置由 Lite 原生后台负责，主题包不再携带另一套后台页面。
+已对照 Monitor v1.5.0 的安装器检查目录结构、gzip 完整性、文件数量与大小；浏览器验收使用模拟 API，实际站点安装仍以后台结果为准。
 
-从旧版升级后，建议在“延迟线路”中重新选择现有 Ping 任务。若浏览器仍打开旧后台，请清理该站点以前注册的 Service Worker 或站点缓存。
+## 当前功能
 
-## 本主题的扩展
+- 地图支持拖拽、惯性、双指缩放、双击及键盘操作，保留点阵效果与国家边界。点击地区可查看节点；选中点使用线性呼吸动画。
+- 地图按服务器上报的国家或地区归集节点。展示国家级分布，不推测机房经纬度；没有地区的节点仍在节点列表中显示。
+- 手机端将地图作为主要区域，下面是紧凑的六项状态，再向下滚动查看服务器。桌面端地图与状态完整展示，互不遮挡。
+- 六项状态：内存用量、剩余价值、实时网速（上行/下行两行）、硬盘用量、累计流量、节点情况。
+- 节点情况采用绿色在线数 / 蓝色总数；点击筛选离线节点，再次点击返回全部。
+- 服务器与状态卡片采用液态玻璃样式；价格、IP 标签等高；底部备注以分号拆分为彩色标签。
+- 默认展示电信、联通、移动三条真实 Ping 线路。支持自动识别与手动任务绑定；区分尚未加载、加载失败、无样本及未配置任务。
+- 保留右上角快捷操作、深浅色切换、卡片密度、配色、流量明细和资产统计。管理员及访客可见性分别控制。
 
-### 三网延迟
+<img src="docs/mobile.png" alt="SAOX 手机预览" width="390" />
 
-- 节点卡片显示电信、联通、移动三项延迟与丢包状态。
-- 三行线路可从 Lite 当前 Ping 任务中指定，也可留空自动匹配。
-- 优先读取 Metric Store，同时兼容公开 Ping 记录与旧接口回退。
-- 延迟卡片、图例和详情图表遵循后台 Ping 任务顺序。
-- 延迟数值使用分级颜色，并对小字号显示做抗锯齿调整。
+## 两处主题设置
 
-### 地区筛选与跨设备一致性
+Monitor 后台提供 25 项基础设置；登录后的前台「SAOX 主题设置」提供完整高级编辑，修改会自动保存到当前站点的 `/api/themes/saox/config`。保存失败会显示错误，不会显示成已同步。
 
-- 首页提供独立国家/地区筛选行，默认显示全部节点，再次点击当前地区可取消筛选。
-- 地区顺序优先为 `CN、HK、MO、TW、SG、JP、US`，随后显示欧洲和其他地区。
-- 管理员配置的节点地区优先于第三方 IP 定位，避免不同浏览器产生不同归类。
-- 地区筛选、快捷筛选和节点工具在桌面与移动端保持对齐，窄屏可横向滑动。
+| 分组 | 后台基础设置 | 前台高级设置 |
+| --- | --- | --- |
+| 首页总览 | 默认外观、地图与状态、跟随分组 | 同左；六项状态及离线筛选说明 |
+| 节点卡片 | 桌面/手机卡片、分组地区、指标、默认排序 | 分组次序、流量光柱与配色预览 |
+| 三网延迟 | 自动三网模式 | 线路选择、节点任务绑定、延迟/丢包阈值与色阶 |
+| 资产统计 | 汇率接口 | 不计入统计的节点、买入溢价 |
+| 访问权限 | 登录入口、管理员昵称、流量/价格公开、资产入口 | 同左及隐藏节点名单 |
 
-### 标签、地图与独立安装
+默认卡片为 compact，手机不提供列表模式。首页已移除访客排序菜单，仅由管理员设置默认顺序。后台与前台共享服务端配置；浏览器临时外观与视图偏好使用 `saox:*` 存储，不读取旧 SAO 的键。
 
-- 节点标签支持显式颜色，未指定颜色时自动分配不同配色。
-- 地图标记保留同位置多节点数量信息，并避免国家统计遮挡 3D 地球。
-- 使用独立名称、主题标识和仓库地址，可与原版 Glassmorphism 共存并分别配置。
+## 开发与打包
 
-## 安装
+需要 Node.js 22+ 和 npm。所有命令从本仓库根目录执行：
 
-在 Lite 或 Komari 的主题管理中导入仓库地址：
-
-```text
-https://github.com/LuxJon/komari-theme-Glassmorphism-ThreeNetwork
+```sh
+npm ci
+npm run dev
+npm run lint
+npm run typecheck
+npm test
+npm run package
 ```
 
-也可以从 [最新 Release](https://github.com/LuxJon/komari-theme-Glassmorphism-ThreeNetwork/releases/latest) 下载 ZIP 后上传安装。主题标识为 `GlassmorphismThreeNetwork`，不会覆盖原版 `Glassmorphism`。
+打包会生成：
 
-## 本地开发
+- `theme.tar.gz`：Monitor 可导入的主题包，也是自动更新识别的固定资产名。
+- `SAOX-1.2.3-source.zip`：当前源码，不含依赖、缓存或历史聊天产物。
+- `SHA256SUMS`：两个包的 SHA-256 校验值。
 
-```bash
-bun install
-bun run dev
-bun run lint
-bun run build
-```
+`theme.json` 和 `package.json` 版本必须一致。推送 `v1.2.3` 标签会在 GitHub Actions 执行 lint、类型检查、测试、构建及打包，成功后发布 Release。不要手工修改构建输出替代源码变更。
 
-构建包顶层固定包含：
+## 仓库结构
 
-```text
-komari-theme.json
-preview.png
-dist/
-```
+- `src/`：React/TypeScript 页面、组件、业务与监控数据适配。
+- `public/`：运行时资源、空的 SAOX 静态配置兜底及第三方许可证。
+- `scripts/`：安装包、源码包与校验值生成。
+- `docs/`：当前版本桌面、手机和设置预览。
+- `.github/workflows/`：构建与发布。
+- `theme.json`：主题身份、版本与后台基础设置声明。
 
-## 致谢
+这是 **Monitor 主题**；原仓库的 Komari/Vue 配置、ZIP 安装约定与旧版 Glassmorphism 说明不再适用于本版本。
 
-- [Komari Glassmorphism](https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism) — 本主题的主要代码基础、玻璃拟态设计与监控能力。
-- [Komari Theme LuminaPlus](https://github.com/shanyang242/Komari-Theme-LuminaPlus) — 三网延迟展示与地区筛选交互的设计参考。
-- [Lite](https://github.com/nuomiiiii/Lite) — Komari 生态的持续开发版本及本主题 3.4.0 的主要适配目标。
-- [Komari Monitor](https://github.com/komari-monitor/komari) — 原始监控平台、接口与主题生态。
+## 开源许可与来源
 
-## License
-
-本项目遵循 [MIT License](LICENSE)。二次分发时请保留原项目许可证与作者信息。
+MIT。保留 WAOR 的原始版权声明，LuxJon 维护 SAOX 修改。地图数据及视觉参考的作者、来源和许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 与 [public/licenses](public/licenses)。本项目不代表上游作者或参考主题的官方发行。

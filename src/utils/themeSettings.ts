@@ -1,0 +1,453 @@
+import type {
+  PingLatencyColors,
+  PingLatencyThresholds,
+  PingLossColors,
+  PingLossThresholds,
+  ThemeSettings,
+  TrafficSpectrumColors,
+} from "@/types/komari";
+import {
+  DEFAULT_COST_RATE_API_URL,
+  normalizeCostIgnoredNodes,
+  normalizeCostPremiums,
+  normalizeCostRateApiUrl,
+  type CostPremiumEntry,
+} from "@/utils/cost";
+import { normalizeNodeIdentityList } from "@/utils/nodeIdentity";
+import { normalizeHomeGroupOrder } from "@/utils/homeNodes";
+import {
+  HOME_SORT_NATURAL_DIRECTION,
+  isHomeSortDirection,
+  isHomeSortField,
+  type HomeSortDirection,
+  type HomeSortField,
+} from "@/utils/homeSort";
+import {
+  normalizeHomepageMultiPingTaskIds,
+  normalizeHomepagePingTaskBindings,
+  type HomepagePingTaskBindings,
+} from "@/utils/pingTasks";
+
+export type Appearance = "system" | "light" | "dark";
+export type NodeViewMode = "large" | "compact" | "mini" | "list";
+
+
+export const DEFAULT_PING_LATENCY_THRESHOLDS: PingLatencyThresholds = {
+  excellent: 60,
+  good: 100,
+  moderate: 160,
+  elevated: 200,
+};
+
+export const DEFAULT_PING_LATENCY_COLORS: PingLatencyColors = {
+  excellent: "#10b981",
+  good: "#84cc16",
+  moderate: "#eab308",
+  elevated: "#f59e0b",
+  critical: "#ef4444",
+};
+
+export const DEFAULT_PING_LOSS_THRESHOLDS: PingLossThresholds = {
+  low: 3,
+  medium: 10,
+};
+
+export const DEFAULT_PING_LOSS_COLORS: PingLossColors = {
+  zero: "#10b981",
+  low: "#eab308",
+  medium: "#f97316",
+  high: "#ef4444",
+};
+
+export interface StatusBarPreset {
+  id: string;
+  name: string;
+  colors: TrafficSpectrumColors;
+  latencyColors: PingLatencyColors;
+  lossColors: PingLossColors;
+}
+
+export type TrafficSpectrumPreset = StatusBarPreset;
+
+export const DEFAULT_TRAFFIC_SPECTRUM_COLORS: TrafficSpectrumColors = {
+  start: "#10b981",
+  mid: "#eab308",
+  high: "#f97316",
+  end: "#ef4444",
+};
+
+export const STATUS_BAR_PRESETS: readonly StatusBarPreset[] = [
+  {
+    id: "classic",
+    name: "经典运维 (翡翠绿 · 琥珀黄 · 警示橙 · 熔岩红)",
+    colors: { start: "#10b981", mid: "#eab308", high: "#f97316", end: "#ef4444" },
+    latencyColors: {
+      excellent: "#10b981",
+      good: "#84cc16",
+      moderate: "#eab308",
+      elevated: "#f97316",
+      critical: "#ef4444",
+    },
+    lossColors: {
+      zero: "#10b981",
+      low: "#eab308",
+      medium: "#f97316",
+      high: "#ef4444",
+    },
+  },
+  {
+    id: "icefire",
+    name: "深邃冰火 (冰川蓝 · 暮光紫 · 烈焰橙 · 绝境红)",
+    colors: { start: "#06b6d4", mid: "#8b5cf6", high: "#f97316", end: "#ef4444" },
+    latencyColors: {
+      excellent: "#06b6d4",
+      good: "#3b82f6",
+      moderate: "#8b5cf6",
+      elevated: "#f97316",
+      critical: "#ef4444",
+    },
+    lossColors: {
+      zero: "#06b6d4",
+      low: "#8b5cf6",
+      medium: "#f97316",
+      high: "#ef4444",
+    },
+  },
+  {
+    id: "marine",
+    name: "深海青翠 (薄荷青 · 蔚蓝海 · 暖杏黄 · 珊瑚红)",
+    colors: { start: "#14b8a6", mid: "#0284c7", high: "#f59e0b", end: "#ef4444" },
+    latencyColors: {
+      excellent: "#14b8a6",
+      good: "#06b6d4",
+      moderate: "#0284c7",
+      elevated: "#f59e0b",
+      critical: "#ef4444",
+    },
+    lossColors: {
+      zero: "#14b8a6",
+      low: "#0284c7",
+      medium: "#f59e0b",
+      high: "#ef4444",
+    },
+  },
+] as const;
+
+export const TRAFFIC_SPECTRUM_PRESETS: readonly StatusBarPreset[] = STATUS_BAR_PRESETS;
+
+export interface ResolvedThemeSettings {
+  defaultAppearance: Appearance;
+  desktopNodeViewMode: NodeViewMode;
+  mobileNodeViewMode: NodeViewMode;
+  enableAdminButton: boolean;
+  homepagePingBindings: HomepagePingTaskBindings;
+  enableHomepageMultiPing: boolean;
+  homepageMultiPingTaskIds: number[];
+  fakePingForUnbound: boolean;
+  pingLatencyThresholds: PingLatencyThresholds;
+  pingLatencyColors: PingLatencyColors;
+  pingLossThresholds: PingLossThresholds;
+  pingLossColors: PingLossColors;
+  trafficSpectrumColors: TrafficSpectrumColors;
+  showHomeOverview: boolean;
+  overviewFollowGroup: boolean;
+  showGroupTabs: boolean;
+  showUngroupedTab: boolean;
+  showRegionBar: boolean;
+  showCardGroup: boolean;
+  homeGroupOrder: string[];
+  homeSortField: HomeSortField;
+  homeSortDirection: HomeSortDirection;
+  showTrafficPageButton: boolean;
+  showTrafficPageForGuests: boolean;
+  showCostSummary: boolean;
+  showCostSummaryFloatingButton: boolean;
+  showPriceForGuests: boolean;
+  showOverviewRatings: boolean;
+  showTrafficRating: boolean;
+  showAssetRating: boolean;
+  trafficRatingLabels: string;
+  assetRatingLabels: string;
+  compactShowTrafficTotal: boolean;
+  compactShowBilling: boolean;
+  compactShowUptime: boolean;
+  showConnections: boolean;
+  showTodayTrafficPopover: boolean;
+  hiddenNodes: string[];
+  costIgnoredNodes: string[];
+  costPremiums: Record<string, CostPremiumEntry>;
+  costRateApiUrl: string;
+  adminNickname: string;
+}
+
+/** Monitor 后台可编辑的基础字段；结构化高级配置由前台设置页管理。 */
+export const THEME_CONFIG_KEYS = [
+  "defaultAppearance",
+  "showHomeOverview",
+  "overviewFollowGroup",
+  "desktopNodeViewMode",
+  "mobileNodeViewMode",
+  "showGroupTabs",
+  "showUngroupedTab",
+  "showRegionBar",
+  "showCardGroup",
+  "compactShowTrafficTotal",
+  "compactShowBilling",
+  "compactShowUptime",
+  "showConnections",
+  "showTodayTrafficPopover",
+  "homeSortField",
+  "homeSortDirection",
+  "enableHomepageMultiPing",
+  "costRateApiUrl",
+  "enableAdminButton",
+  "adminNickname",
+  "showTrafficPageButton",
+  "showTrafficPageForGuests",
+  "showCostSummary",
+  "showCostSummaryFloatingButton",
+  "showPriceForGuests"
+] as const;
+
+export const THEME_CONFIG_KEYS_SET: ReadonlySet<string> = new Set<string>(THEME_CONFIG_KEYS);
+
+export const DEFAULT_THEME_SETTINGS: ResolvedThemeSettings = {
+  defaultAppearance: "system",
+  desktopNodeViewMode: "compact",
+  mobileNodeViewMode: "compact",
+  enableAdminButton: true,
+  homepagePingBindings: {},
+  enableHomepageMultiPing: true,
+  homepageMultiPingTaskIds: [],
+  fakePingForUnbound: false,
+  pingLatencyThresholds: DEFAULT_PING_LATENCY_THRESHOLDS,
+  pingLatencyColors: DEFAULT_PING_LATENCY_COLORS,
+  pingLossThresholds: DEFAULT_PING_LOSS_THRESHOLDS,
+  pingLossColors: DEFAULT_PING_LOSS_COLORS,
+  trafficSpectrumColors: DEFAULT_TRAFFIC_SPECTRUM_COLORS,
+  showHomeOverview: true,
+  overviewFollowGroup: false,
+  showGroupTabs: true,
+  showUngroupedTab: false,
+  showRegionBar: true,
+  showCardGroup: true,
+  homeGroupOrder: [],
+  homeSortField: "default",
+  homeSortDirection: HOME_SORT_NATURAL_DIRECTION.default,
+  showTrafficPageButton: true,
+  showTrafficPageForGuests: false,
+  showCostSummary: true,
+  showCostSummaryFloatingButton: true,
+  showPriceForGuests: false,
+  showOverviewRatings: true,
+  showTrafficRating: false,
+  showAssetRating: false,
+  trafficRatingLabels: "",
+  assetRatingLabels: "",
+  compactShowTrafficTotal: true,
+  compactShowBilling: true,
+  compactShowUptime: true,
+  showConnections: false,
+  showTodayTrafficPopover: true,
+  hiddenNodes: [],
+  costIgnoredNodes: [],
+  costPremiums: {},
+  costRateApiUrl: DEFAULT_COST_RATE_API_URL,
+  adminNickname: "",
+};
+
+export function isAppearance(value: unknown): value is Appearance {
+  return value === "system" || value === "light" || value === "dark";
+}
+
+function normalizeAppearance(
+  value: unknown,
+  fallback: Appearance = DEFAULT_THEME_SETTINGS.defaultAppearance,
+): Appearance {
+  return isAppearance(value) ? value : fallback;
+}
+
+export function isNodeViewMode(value: unknown): value is NodeViewMode {
+  return value === "large" || value === "compact" || value === "mini" || value === "list";
+}
+
+function normalizeNodeViewMode(
+  value: unknown,
+  fallback: NodeViewMode,
+): NodeViewMode {
+  if (isNodeViewMode(value)) return value;
+  // 未知旧字符串统一落到小卡，避免升级后出现无选中项。
+  return typeof value === "string" && value.length > 0 ? "compact" : fallback;
+}
+
+// 列表档仅桌面可用(见 useViewMode 的 MOBILE_VIEW_MODES)。移动端即便配置里存了 "list"
+// (历史值/外部写入)也归一化回默认档,避免管理页无选中项、首页又强制回落 compact 的不一致。
+function normalizeMobileNodeViewMode(
+  value: unknown,
+  fallback: NodeViewMode,
+): NodeViewMode {
+  const mode = normalizeNodeViewMode(value, fallback);
+  return mode === "list" ? fallback : mode;
+}
+
+function enabledUnlessFalse(value: unknown) {
+  return value !== false;
+}
+
+function normalizePlainText(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+
+// 管理员默认排序:字段非法回落 default;方向非法时回落该字段的自然方向(文本升、数值降)。
+function normalizeHomeSortDefault(
+  field: unknown,
+  direction: unknown,
+): { homeSortField: HomeSortField; homeSortDirection: HomeSortDirection } {
+  const homeSortField = isHomeSortField(field) ? field : "default";
+  return {
+    homeSortField,
+    homeSortDirection: isHomeSortDirection(direction)
+      ? direction
+      : HOME_SORT_NATURAL_DIRECTION[homeSortField],
+  };
+}
+
+
+function isValidHexColor(val: unknown): val is string {
+  return typeof val === "string" && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(val.trim());
+}
+
+export function normalizePingLatencyThresholds(val: unknown): PingLatencyThresholds {
+  const defaults = DEFAULT_PING_LATENCY_THRESHOLDS;
+  if (!val || typeof val !== "object") return defaults;
+  const raw = val as Record<string, unknown>;
+  const e = typeof raw.excellent === "number" && Number.isFinite(raw.excellent) && raw.excellent > 0
+    ? Math.round(raw.excellent)
+    : defaults.excellent;
+  const g = typeof raw.good === "number" && Number.isFinite(raw.good) && raw.good > e
+    ? Math.round(raw.good)
+    : Math.max(e + 10, defaults.good);
+  const m = typeof raw.moderate === "number" && Number.isFinite(raw.moderate) && raw.moderate > g
+    ? Math.round(raw.moderate)
+    : Math.max(g + 10, defaults.moderate);
+  const el = typeof raw.elevated === "number" && Number.isFinite(raw.elevated) && raw.elevated > m
+    ? Math.round(raw.elevated)
+    : Math.max(m + 10, defaults.elevated);
+  return { excellent: e, good: g, moderate: m, elevated: el };
+}
+
+export function normalizePingLatencyColors(val: unknown): PingLatencyColors {
+  const defaults = DEFAULT_PING_LATENCY_COLORS;
+  if (!val || typeof val !== "object") return defaults;
+  const raw = val as Record<string, unknown>;
+  return {
+    excellent: isValidHexColor(raw.excellent) ? raw.excellent.toLowerCase() : defaults.excellent,
+    good: isValidHexColor(raw.good) ? raw.good.toLowerCase() : defaults.good,
+    moderate: isValidHexColor(raw.moderate) ? raw.moderate.toLowerCase() : defaults.moderate,
+    elevated: isValidHexColor(raw.elevated) ? raw.elevated.toLowerCase() : defaults.elevated,
+    critical: isValidHexColor(raw.critical) ? raw.critical.toLowerCase() : defaults.critical,
+  };
+}
+
+export function normalizePingLossThresholds(val: unknown): PingLossThresholds {
+  const defaults = DEFAULT_PING_LOSS_THRESHOLDS;
+  if (!val || typeof val !== "object") return defaults;
+  const raw = val as Record<string, unknown>;
+  const low = typeof raw.low === "number" && Number.isFinite(raw.low) && raw.low > 0 && raw.low <= 100
+    ? Number(raw.low.toFixed(1))
+    : defaults.low;
+  const medium = typeof raw.medium === "number" && Number.isFinite(raw.medium) && raw.medium > low && raw.medium <= 100
+    ? Number(raw.medium.toFixed(1))
+    : Math.max(low + 1, defaults.medium);
+  return { low, medium };
+}
+
+export function normalizePingLossColors(val: unknown): PingLossColors {
+  const defaults = DEFAULT_PING_LOSS_COLORS;
+  if (!val || typeof val !== "object") return defaults;
+  const raw = val as Record<string, unknown>;
+  return {
+    zero: isValidHexColor(raw.zero) ? raw.zero.toLowerCase() : defaults.zero,
+    low: isValidHexColor(raw.low) ? raw.low.toLowerCase() : defaults.low,
+    medium: isValidHexColor(raw.medium) ? raw.medium.toLowerCase() : defaults.medium,
+    high: isValidHexColor(raw.high) ? raw.high.toLowerCase() : defaults.high,
+  };
+}
+
+export function normalizeTrafficSpectrumColors(val: unknown): TrafficSpectrumColors {
+  const defaults = DEFAULT_TRAFFIC_SPECTRUM_COLORS;
+  if (!val || typeof val !== "object") return defaults;
+  const raw = val as Record<string, unknown>;
+  return {
+    start: isValidHexColor(raw.start) ? raw.start.toLowerCase() : defaults.start,
+    mid: isValidHexColor(raw.mid) ? raw.mid.toLowerCase() : defaults.mid,
+    high: isValidHexColor(raw.high) ? raw.high.toLowerCase() : defaults.high,
+    end: isValidHexColor(raw.end) ? raw.end.toLowerCase() : defaults.end,
+  };
+}
+
+export function normalizeThemeSettings(
+  settings: (ThemeSettings & Record<string, unknown>) | null | undefined,
+): ResolvedThemeSettings {
+  const homepageMultiPingTaskIds = normalizeHomepageMultiPingTaskIds(
+    settings?.homepageMultiPingTaskIds,
+  );
+  return {
+    defaultAppearance: normalizeAppearance(settings?.defaultAppearance),
+    desktopNodeViewMode: normalizeNodeViewMode(
+      settings?.desktopNodeViewMode,
+      DEFAULT_THEME_SETTINGS.desktopNodeViewMode,
+    ),
+    mobileNodeViewMode: normalizeMobileNodeViewMode(
+      settings?.mobileNodeViewMode,
+      DEFAULT_THEME_SETTINGS.mobileNodeViewMode,
+    ),
+    enableAdminButton: enabledUnlessFalse(settings?.enableAdminButton),
+    homepagePingBindings: normalizeHomepagePingTaskBindings(settings?.homepagePingBindings),
+    // 保留开关原值，让管理页能呈现并修复不完整配置；首页消费方仅在任务恰好为三项时启用。
+    enableHomepageMultiPing: settings?.enableHomepageMultiPing !== false,
+    homepageMultiPingTaskIds,
+    // 默认关闭(需手动开启):给访客展示的是模拟数据,必须由站长显式决定。
+    fakePingForUnbound: settings?.fakePingForUnbound === true,
+    pingLatencyThresholds: normalizePingLatencyThresholds(settings?.pingLatencyThresholds),
+    pingLatencyColors: normalizePingLatencyColors(settings?.pingLatencyColors),
+    pingLossThresholds: normalizePingLossThresholds(settings?.pingLossThresholds),
+    pingLossColors: normalizePingLossColors(settings?.pingLossColors),
+    trafficSpectrumColors: normalizeTrafficSpectrumColors(settings?.trafficSpectrumColors),
+    showHomeOverview: enabledUnlessFalse(settings?.showHomeOverview),
+    overviewFollowGroup: settings?.overviewFollowGroup === true,
+    showGroupTabs: enabledUnlessFalse(settings?.showGroupTabs),
+    showUngroupedTab: settings?.showUngroupedTab === true,
+    showRegionBar: enabledUnlessFalse(settings?.showRegionBar),
+    showCardGroup: enabledUnlessFalse(settings?.showCardGroup),
+    homeGroupOrder: normalizeHomeGroupOrder(settings?.homeGroupOrder),
+    ...normalizeHomeSortDefault(settings?.homeSortField, settings?.homeSortDirection),
+    showTrafficPageButton: enabledUnlessFalse(settings?.showTrafficPageButton),
+    // 默认关闭(向访客保密入口):关闭时未登录访客隐藏今日流量右上角图表按钮，保持卡片无图标统一纯净。
+    showTrafficPageForGuests: settings?.showTrafficPageForGuests === true,
+    showCostSummary: enabledUnlessFalse(settings?.showCostSummary),
+    showCostSummaryFloatingButton: enabledUnlessFalse(settings?.showCostSummaryFloatingButton),
+    // 默认关闭(向访客保密):需站长在主题设置中显式开启，未开启时向访客显示为保密。
+    showPriceForGuests: settings?.showPriceForGuests === true,
+    showOverviewRatings: enabledUnlessFalse(settings?.showOverviewRatings),
+    showTrafficRating: settings?.showTrafficRating === true,
+    showAssetRating: settings?.showAssetRating === true,
+    trafficRatingLabels: normalizePlainText(settings?.trafficRatingLabels),
+    assetRatingLabels: normalizePlainText(settings?.assetRatingLabels),
+    compactShowTrafficTotal: enabledUnlessFalse(settings?.compactShowTrafficTotal),
+    compactShowBilling: enabledUnlessFalse(settings?.compactShowBilling),
+    compactShowUptime: enabledUnlessFalse(settings?.compactShowUptime),
+    // 默认关闭(需手动开启):连接数是个小众指标,很多 agent 也不上报,所以只在显式启用时才显示。
+    showConnections: settings?.showConnections === true,
+    showTodayTrafficPopover: enabledUnlessFalse(settings?.showTodayTrafficPopover),
+    hiddenNodes: normalizeNodeIdentityList(settings?.hiddenNodes),
+    costIgnoredNodes: normalizeCostIgnoredNodes(settings?.costIgnoredNodes),
+    costPremiums: normalizeCostPremiums(settings?.costPremiums),
+    costRateApiUrl: normalizeCostRateApiUrl(settings?.costRateApiUrl),
+    adminNickname:
+      typeof settings?.adminNickname === "string"
+        ? settings.adminNickname.replace(/[\x00-\x1F\x7F]/g, "").trim().slice(0, 40)
+        : "",
+  };
+}

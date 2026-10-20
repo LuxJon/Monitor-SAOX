@@ -1,0 +1,25 @@
+{
+  "id": "/?theme=saox",
+  "name": "SAOX Monitor",
+  "short_name": "SAOX",
+  "description": "交互点阵世界地图、液态玻璃监控卡片与三网延迟；移动端优先展示地图。基于 SAO 定制。",
+  "lang": "zh-CN",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#f4f5f7",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

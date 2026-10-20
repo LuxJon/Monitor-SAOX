@@ -1,0 +1,178 @@
+/* Full interactive map followed by a separate six-card status grid. */
+.map-overview {
+  position: relative;
+  isolation: isolate;
+  margin: 0 auto 28px;
+  width: 100%;
+  max-width: 1400px;
+}
+.node-world-map {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2.5;
+  max-height: 500px;
+  margin: 0 auto 16px;
+  overflow: hidden;
+  border-radius: 0;
+  min-width: 0;
+}
+.world-map-stage { position: absolute; inset: 0; display: grid; place-items: center; }
+.world-map-svg { display: block; width: 100%; height: 100%; margin: 0 auto; overflow: hidden; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+.world-map-land { color: color-mix(in srgb, var(--text-secondary) 72%, transparent); }
+.world-map-country { stroke: color-mix(in srgb, var(--text-secondary) 45%, transparent); stroke-width: .7; stroke-linejoin: round; transition: stroke 160ms ease; }
+.world-map-country:hover { stroke: var(--accent-500); stroke-width: 1.5; }
+.world-map-svg[data-dragging="true"] { cursor: grabbing; }
+/* SVG elements otherwise receive a rectangular UA focus ring, especially in WebKit. */
+.world-map-svg,.world-map-svg:focus,.world-map-svg:focus-visible,
+.world-map-marker,.world-map-marker:focus,.world-map-marker:focus-visible { outline: none; box-shadow: none; -webkit-tap-highlight-color: transparent; }
+.world-map-svg:focus-visible .world-map-land { color: color-mix(in srgb, var(--text-secondary) 88%, transparent); }
+.world-map-marker-halo,.world-map-marker-core { transform-box: fill-box; transform-origin: center; pointer-events: none; }
+.world-map-marker-halo { animation: map-marker-breathe 3s linear infinite; }
+.world-map-marker[aria-pressed="true"] .world-map-marker-core,
+.world-map-marker:focus-visible .world-map-marker-core { animation: map-selected-breathe 1.6s linear infinite; }
+.world-map-marker[aria-pressed="true"] .world-map-marker-halo { animation-duration: 1.6s; }
+@keyframes map-marker-breathe { 0%,100% { transform: scale(.9); opacity: .12; } 50% { transform: scale(1.2); opacity: .24; } }
+@keyframes map-selected-breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.45); } }
+.world-map-land { animation: map-land-in 650ms ease both; }
+@keyframes map-land-in { from { opacity: 0; } to { opacity: 1; } }
+.world-map-marker { cursor: pointer; }
+.node-world-map [data-tone="all"] { color: var(--accent-500); }
+.node-world-map [data-tone="some"] { color: var(--status-warning); }
+.node-world-map [data-tone="none"] { color: var(--status-error); }
+.node-world-map [data-tone="unknown"] { color: var(--text-tertiary); }
+.world-map-glass {
+  background: color-mix(in srgb, var(--surface-elev) 38%, transparent);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+.world-map-node-link > i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.map-overview-stats {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 auto;
+  max-width: 1240px;
+}
+.map-stat-card {
+  display: flex; min-width: 0; min-height: 102px; flex-direction: column;
+  justify-content: space-between; gap: 8px; padding: 12px 15px; border-radius: 15px;
+}
+.map-stat-head { display: flex; align-items: center; justify-content: space-between; gap: 5px; color: var(--text-secondary); font-size: 12px; }
+.map-stat-head svg { flex-shrink: 0; color: var(--text-tertiary); opacity: .65; }
+.map-stat-value { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px; min-width: 0; color: var(--text-primary); font-variant-numeric: tabular-nums; line-height: 1.2; }
+.map-stat-value strong,.map-stat-money { font-size: clamp(18px, 1.8vw, 24px); font-weight: 700; letter-spacing: -.03em; }
+.map-stat-unit { font-size: 12px; font-weight: 500; }
+.map-stat-total { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+.map-stat-money { overflow-wrap: anywhere; }
+.map-stat-value a { display: inline-flex; align-items: baseline; gap: 3px; border-radius: 4px; }
+.world-map-popover { position: absolute; z-index: 5; right: 8px; top: 10px; width: min(280px, calc(100% - 16px)); max-height: calc(100% - 20px); display: flex; flex-direction: column; border-radius: 12px; padding: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+.world-map-popover-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--text-secondary); }
+.world-map-popover-head > span { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.world-map-popover-head button { display: grid; place-items: center; flex-shrink: 0; width: 32px; height: 32px; border: 0; border-radius: 6px; background: transparent; color: var(--text-secondary); }
+.world-map-node-list { min-height: 0; max-height: 132px; overflow-y: auto; overscroll-behavior: contain; margin-top: 4px; }
+.world-map-node-link { display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px; border-radius: 6px; color: var(--text-primary); font-size: 12px; }
+.world-map-node-link:hover,.world-map-popover-head button:hover { background: color-mix(in srgb, var(--accent-500) 10%, transparent); }
+.world-map-node-link > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.world-map-node-link small { color: var(--text-secondary); font-size: 11px; }
+/* Filters and server cards form the second section, without another outer card. */
+.mao-server-section,
+:root[data-appearance="dark"] .mao-server-section { border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: 0; gap: 14px; }
+.mao-server-section .home-controls-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 0; }
+.mao-server-section .home-group-tabs { max-width: 100%; }
+@media (max-width: 768px) {
+  .map-overview { margin-bottom: 20px; }
+  .node-world-map { width: calc(100% + 16px); margin: 0 -8px 14px; }
+  .map-overview-stats { gap: 8px; margin-top: 0; }
+  .map-stat-card { min-height: 88px; gap: 6px; padding: 9px 9px; border-radius: 12px; }
+  .map-stat-head { font-size: 11px; }
+  .map-stat-head svg { width: 14px; height: 14px; }
+  .map-stat-value strong,.map-stat-money { font-size: 18px; }
+  .map-stat-unit,.map-stat-total { font-size: 10px; }
+  .map-stat-total { flex-basis: 100%; }
+  .map-stat-value { min-height: 32px; align-content: flex-start; }
+}
+@media (max-width: 359px) {
+  .map-stat-card { padding: 9px 7px; }
+  .map-stat-head { font-size: 11px; }
+  .map-stat-head svg { width: 12px; height: 12px; }
+  .map-stat-value strong,.map-stat-money { font-size: 17px; }
+}
+@media (pointer: coarse) {
+  .world-map-popover-head button { width: 44px; height: 44px; }
+  .world-map-node-link { min-height: 44px; }
+}
+
+.network-speed-rows { display: flex; flex-direction: column; gap: 5px; }
+.network-speed-row { color: var(--accent-500); min-width: 0; }
+.network-speed-row[data-direction="download"] { color: var(--status-online); }
+.network-speed-value { line-height: 1.1; display: flex; align-items: baseline; justify-content: space-between; gap: 4px; font-variant-numeric: tabular-nums; }
+.network-speed-label { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; white-space: nowrap; }
+.network-speed-label svg { flex-shrink: 0; }
+.network-speed-number { display: inline-flex; align-items: baseline; gap: 2px; white-space: nowrap; }
+.network-speed-number strong { font-size: 17px; letter-spacing: -.035em; }
+.network-speed-track,.node-count-track { display: block; height: 3px; margin-top: 3px; overflow: hidden; border-radius: 20px; background: var(--fill-secondary); }
+.network-speed-fill { display: block; position: relative; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #8b5cf6, #3b82f6); transition: width 650ms cubic-bezier(.22,1,.36,1); }
+[data-direction="download"] .network-speed-fill { background: linear-gradient(90deg, #0ea5e9, #10b981); }
+.network-speed-fill::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(90deg, transparent, #ffffff90, transparent); transform: translateX(-110%); animation: network-flow 1.8s linear infinite; }
+[data-moving="false"] .network-speed-fill::after { animation: none; }
+@keyframes network-flow { to { transform: translateX(110%); } }
+.map-stat-nodes { text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%; }
+.map-stat-nodes[aria-pressed="true"] { outline: 2px solid var(--accent-500); outline-offset: -2px; }
+.map-stat-nodes:focus-visible { outline: 2px solid var(--accent-500); outline-offset: 2px; }
+.node-count-online { color: var(--status-online); }
+.node-count-total { color: var(--accent-500); }
+.node-count-divider { font-size: 18px; color: var(--text-tertiary); padding: 0 2px; }
+.node-count-track { width: 100%; margin-top: 0; background: color-mix(in srgb, var(--accent-500) 16%, transparent); }
+.node-count-track > span { display: block; height: 100%; border-radius: inherit; background: var(--status-online); transition: width 500ms ease; }
+.home-status-filter button { border: 1px solid color-mix(in srgb, var(--accent-500) 30%, transparent); border-radius: 10px; color: var(--accent-500); background: color-mix(in srgb, var(--accent-500) 10%, transparent); padding: 8px 12px; cursor: pointer; min-height: 40px; }
+.home-filter-empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 36px 12px; color: var(--text-secondary); font-size: 14px; }
+.home-filter-empty button { color: var(--accent-500); padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+@media (max-width: 768px) {
+  .network-speed-number strong { font-size: 14px; }
+  .network-speed-number .map-stat-unit { font-size: 9px; }
+}
+@media (max-width: 480px) { .network-speed-label > span { display: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .world-map-marker-halo,.world-map-marker-core,.world-map-marker[aria-pressed="true"] .world-map-marker-core,.world-map-marker:focus-visible .world-map-marker-core,.world-map-land,.network-speed-fill::after { animation: none; }
+  .network-speed-fill,.node-count-track > span { transition: none; }
+}
+
+/* Compact phone first screen: actual taller geography above smaller status cards. */
+.map-stat-capacity { display: flex; align-items: baseline; flex-wrap: nowrap; gap: 3px; min-width: 0; white-space: nowrap; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.map-stat-capacity strong { font-size: clamp(18px, 1.8vw, 24px); font-weight: 700; letter-spacing: -.03em; }
+.capacity-total,.capacity-divider { color: var(--text-secondary); font-size: 12px; }
+.capacity-unit { font-size: 11px; color: var(--text-secondary); }
+.node-world-map[data-projection="mobile"] .world-map-country { stroke-width: .25; }
+.node-world-map[data-projection="mobile"] .world-map-country:hover { stroke-width: .55; }
+@media (max-width: 600px) {
+  .mao-nav-inner { height: 44px; }
+  .mao-nav-title { font-size: 14px; }
+  .floating-controls { top: calc(env(safe-area-inset-top, 0px) + 4px); }
+  .app-main { padding-top: 8px; }
+  .map-overview { margin-bottom: 20px; }
+  .node-world-map { margin-bottom: 12px; max-height: none; }
+  .map-overview-stats { gap: 6px; }
+  .map-stat-card { min-height: 66px; padding: 7px; gap: 4px; border-radius: 11px; }
+  .map-stat-head { font-size: 10px; line-height: 1.3; }
+  .map-stat-head svg { width: 12px; height: 12px; }
+  .map-stat-value { min-height: 0; flex-wrap: nowrap; gap: 2px; }
+  .map-stat-value strong,.map-stat-money { font-size: clamp(14px, 4vw, 17px); }
+  .map-stat-unit { font-size: 9px; }
+  .map-stat-capacity { gap: 2px; }
+  .map-stat-capacity strong { font-size: 15px; }
+  .capacity-total,.capacity-divider,.capacity-unit { font-size: 10px; }
+  .network-speed-rows { gap: 2px; }
+  .network-speed-number strong { font-size: 12px; }
+  .network-speed-track { height: 2px; margin-top: 2px; }
+  .network-speed-label svg { width: 10px; height: 10px; }
+  .node-count-divider { font-size: 13px; }
+  .node-count-track { height: 2px; }
+}
+@media (max-width: 359px) {
+  .map-stat-capacity { gap: 1px; }
+  .map-stat-capacity strong { font-size: 13px; }
+  .capacity-total,.capacity-divider,.capacity-unit { font-size: 9px; }
+}
+@media (max-width: 360px) { .floating-controls { top: calc(env(safe-area-inset-top, 0px) + 6px); } }
