@@ -10,6 +10,8 @@ import { useHourlyClock } from "@/hooks/useClock";
 import { useVisibleNodes } from "@/hooks/useVisibleNodes";
 import { useAuth } from "@/hooks/useAuth";
 import { useExpiryFilter } from "@/hooks/useExpiryFilter";
+import { useHomeNodeSummaries } from "@/hooks/useNode";
+import { useHomeNodeOrder } from "@/hooks/useHomeNodeOrder";
 import {
   calculateCostSummary,
   formatCnyMoney,
@@ -39,14 +41,13 @@ const TABLE_COLUMNS: Array<{ field: AssetsSortField; label: string; numeric?: bo
   { field: "weight", label: "节点" },
   { field: "price", label: "价格", numeric: true },
   { field: "remaining", label: "剩余价值", numeric: true },
-  { field: "monthly", label: "月付成本", numeric: true },
+  { field: "monthly", label: "月成本", numeric: true },
   { field: "expiry", label: "到期", numeric: true },
 ];
 
 const MOBILE_SORT_OPTIONS: Array<{ field: AssetsSortField; label: string }> = [
-  { field: "weight", label: "权重" },
   { field: "price", label: "价格" },
-  { field: "monthly", label: "月付成本" },
+  { field: "monthly", label: "月成本" },
   { field: "expiry", label: "到期" },
 ];
 
@@ -107,13 +108,15 @@ function HeroMoney({ value }: { value: number | null }) {
 }
 
 export function Assets() {
-  const [sortField, setSortField] = useState<AssetsSortField>("weight");
+  // No explicit selection: follow the same configured order and offline rules as home.
+  const [sortField, setSortField] = useState<AssetsSortField | null>(null);
   const [sortDirection, setSortDirection] = useState<AssetsSortDirection>("asc");
   const isMobileLayout = useMediaQuery(ASSETS_MOBILE_QUERY);
   const now = useHourlyClock();
   const themeSettings = useThemeSettings();
   const forceRateRefresh = useRef(false);
   const nodes = useVisibleNodes();
+  const homeSummaries = useHomeNodeSummaries();
   // 资产详情页是风险核对入口：这里始终按真实到期数据展示，不读取首页的关闭/稍后偏好。
   const expiry = useExpiryFilter(nodes);
   const renewalReminders = useMemo(() => expiry.expiringNodes.map(node => ({
@@ -147,7 +150,22 @@ export function Assets() {
         : null,
     [nodes, now, themeSettings.costIgnoredNodes, themeSettings.costPremiums, rateQuery.data],
   );
+  const nameByUuid = useMemo(() => new Map(nodes.map(node => [node.uuid, node.name?.trim() || node.uuid])), [nodes]);
+  const visibleSummaries = useMemo(() => homeSummaries.filter(node => nameByUuid.has(node.uuid)), [homeSummaries, nameByUuid]);
+  const priceByUuid = useMemo(() => new Map((summary?.details ?? []).map(detail => [detail.uuid, detail.counted ? detail.monthlyCny : null])), [summary]);
+  const homeOrderedNodes = useHomeNodeOrder({
+    nodes: visibleSummaries,
+    field: themeSettings.homeSortField,
+    direction: themeSettings.homeSortDirection,
+    nameByUuid,
+    priceByUuid,
+  });
+  const homeOrder = useMemo(() => new Map(homeOrderedNodes.map((node, index) => [node.uuid, index])), [homeOrderedNodes]);
   const detailRows = useMemo(() => {
+    if (sortField == null) {
+      return [...(summary?.details ?? [])].sort((a, b) =>
+        (homeOrder.get(a.uuid) ?? Infinity) - (homeOrder.get(b.uuid) ?? Infinity));
+    }
     const direction = sortDirection === "asc" ? 1 : -1;
     // 排序键先算好,避免比较器里 O(n log n) 次重复解析到期日。
     const rows = (summary?.details ?? []).map((detail) => ({
@@ -161,7 +179,7 @@ export function Assets() {
       );
     });
     return rows.map(({ detail }) => detail);
-  }, [sortDirection, sortField, summary]);
+  }, [sortDirection, sortField, summary, homeOrder]);
   const exchangeRateRows = useMemo(() => {
     if (!rateQuery.data?.rates.CNY) return [];
     const rates = rateQuery.data.rates;
@@ -200,7 +218,7 @@ export function Assets() {
 
   const ledgerRows = [
     { label: "年化总支出", value: summary ? formatCnyMoney(summary.totalCny) : "--" },
-    { label: "月付成本合计", value: summary ? formatCnyMoney(summary.monthlyCny) : "--" },
+    { label: "月成本合计", value: summary ? formatCnyMoney(summary.monthlyCny) : "--" },
   ];
 
   const directionIcon =
@@ -275,20 +293,13 @@ export function Assets() {
                     data-active={sortField === option.field}
                     onClick={() => handleSort(option.field)}
                     aria-pressed={sortField === option.field}
+                    title={sortField === option.field ? `当前${sortDirection === "asc" ? "升序" : "降序"}，点击切换` : `按${option.label}排序`}
                   >
                     {option.label}
+                    {sortField === option.field && <span className="sr-only">，{sortDirection === "asc" ? "升序" : "降序"}</span>}
                   </button>
                 ))}
               </div>
-              <button
-                type="button"
-                className="cost-summary-action is-direction"
-                onClick={() => setSortDirection((value) => (value === "asc" ? "desc" : "asc"))}
-                aria-label={sortDirection === "asc" ? "切换为倒序" : "切换为正序"}
-                title={sortDirection === "asc" ? "正序" : "倒序"}
-              >
-                {sortDirection === "asc" ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-              </button>
             </div>
           </div>
 
@@ -343,6 +354,7 @@ export function Assets() {
                             to={`/instance/${encodeURIComponent(detail.uuid)}`}
                             className="assets-node-link"
                             title={detail.name}
+                            data-node-id={detail.uuid}
                           >
                             <Flag region={detail.region} size={12} />
                             <span>{detail.name}</span>
@@ -400,33 +412,30 @@ export function Assets() {
                       className="cost-summary-detail-item"
                       data-counted={detail.counted}
                       data-renewal-tone={renewalTone}
+                      data-node-id={detail.uuid}
                       title={detail.name}
                     >
-                      <div className="cost-summary-detail-head">
-                        <Link
-                          to={`/instance/${encodeURIComponent(detail.uuid)}`}
-                          className="cost-summary-detail-name"
-                        >
-                          <Flag region={detail.region} size={12} />
-                          <span className="cost-summary-detail-title">{detail.name}</span>
-                        </Link>
-                        <strong title="剩余价值">
-                          {detail.counted ? formatCnyMoney(detail.remainingCny) : "—"}
-                        </strong>
-                      </div>
-                      <div className="cost-summary-detail-meta">
-                        <span className="cost-summary-price-chip">{priceLabel}</span>
-                        <span className="cost-summary-monthly-chip" title="后台周期价格换算人民币 ÷ 计费月数">
-                          月付成本 {formatMonthlyCost(detail)}
-                        </span>
-                        <span
-                          className="cost-summary-expire-label"
-                          data-tone={renewalTone}
-                        >
-                          {formatCostExpiry(detail.expiredAt, detail.expiresIn)}
-                          {renewalLabel && <small>{renewalLabel}</small>}
-                        </span>
-                      </div>
+                      <Link
+                        to={`/instance/${encodeURIComponent(detail.uuid)}`}
+                        className="cost-summary-detail-name"
+                      >
+                        <Flag region={detail.region} size={12} />
+                        <span className="cost-summary-detail-title">{detail.name}</span>
+                      </Link>
+                      <strong title="剩余价值">
+                        {detail.counted ? formatCnyMoney(detail.remainingCny) : "—"}
+                      </strong>
+                      <span className="cost-summary-price-chip">{priceLabel}</span>
+                      <span className="cost-summary-monthly-chip" title="后台周期价格换算人民币 ÷ 计费月数">
+                        <span>月成本</span>{" "}<span>{formatMonthlyCost(detail)}</span>
+                      </span>
+                      <span
+                        className="cost-summary-expire-label"
+                        data-tone={renewalTone}
+                        title={renewalLabel}
+                      >
+                        {formatCostExpiry(detail.expiredAt, detail.expiresIn)}
+                      </span>
                     </div>
                   );
                 })}

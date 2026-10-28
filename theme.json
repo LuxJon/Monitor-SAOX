@@ -2,7 +2,7 @@
   "name": "SAOX",
   "short": "saox",
   "description": "交互点阵世界地图、液态玻璃监控卡片与三网延迟；移动端优先展示地图。基于 SAO 定制。",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "author": "LuxJon",
   "url": "https://github.com/LuxJon/Monitor-SAOX",
   "config": [

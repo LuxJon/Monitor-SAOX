@@ -1,7 +1,7 @@
 {
   "name": "monitor-theme-saox",
   "private": true,
-  "version": "1.2.4",
+  "version": "1.2.5",
   "type": "module",
   "description": "SAOX：交互点阵地图、液态玻璃状态卡与三网延迟的 Monitor 主题",
   "author": "LuxJon",

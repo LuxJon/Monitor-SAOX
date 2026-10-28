@@ -175,7 +175,8 @@ export function NodeGrid() {
   const { data: publicConfig } = usePublicConfig();
   const siteName = publicConfig?.sitename?.trim() || "节点概览";
   const themeSettings = useThemeSettings();
-  const { mode } = useViewMode();
+  const { mode, device } = useViewMode();
+  const isMobile = device === "mobile";
   const sortField = themeSettings.homeSortField;
   const sortDirection = themeSettings.homeSortDirection;
   const [selectedGroup, setSelectedGroup] = useState(HOME_ALL_GROUP);
@@ -205,6 +206,13 @@ export function NodeGrid() {
   const expiry = useExpiryFilter(visibleMeta);
   const expiryOrder = useMemo(() => new Map(expiry.expiringNodes.map((node, index) => [node.uuid, index])), [expiry.expiringNodes]);
   const clearExpiry = () => setExpiringOnly(false);
+  const selectExpiry = () => {
+    setSelectedGroup(HOME_ALL_GROUP);
+    setSelectedRegion(HOME_ALL_REGION);
+    setOfflineOnly(false);
+    setExpiringOnly(true);
+    if (expiry.loggedIn) void expiry.retry();
+  };
   // 「名称」排序需要展示名(摘要无 name),从 meta 注入。
   const nameByUuid = useMemo(() => {
     const map = new Map<string, string>();
@@ -532,7 +540,13 @@ export function NodeGrid() {
         className="mao-server-section"
         aria-label="服务器状态列表"
       >
-        {showGroupTabs && (
+        {isMobile && (
+          <div className="home-mobile-filter-tabs" role="group" aria-label="节点筛选模式">
+            <button type="button" aria-pressed={!expiringOnly} onClick={clearExpiry}>地区</button>
+            <button type="button" aria-pressed={expiringOnly} onClick={selectExpiry}>即将到期</button>
+          </div>
+        )}
+        {showGroupTabs && (!isMobile || !expiringOnly) && (
           <div className={controlsWrapClassName} style={controlsStyle}>
             {showGroupTabs && (
               <GroupTabs
@@ -544,27 +558,33 @@ export function NodeGrid() {
             )}
           </div>
         )}
-        <div className="home-filter-toolbar">
-        {showRegionBar && (
-          <RegionTabs
-            regions={regionOptions}
-            selectedRegion={selectedRegion}
-            onSelectRegion={region => { clearExpiry(); setSelectedRegion(region); }}
-          />
+        {(!isMobile || (!expiringOnly && showRegionBar)) && (
+          <div className="home-filter-toolbar">
+            {showRegionBar && (
+              <RegionTabs
+                regions={regionOptions}
+                selectedRegion={selectedRegion}
+                onSelectRegion={region => { clearExpiry(); setSelectedRegion(region); }}
+              />
+            )}
+            {!isMobile && (
+              <button
+                type="button"
+                className="home-expiry-button"
+                aria-pressed={expiringOnly}
+                title={expiry.message}
+                onClick={() => {
+                  if (expiringOnly) clearExpiry();
+                  else selectExpiry();
+                }}
+              >
+                <CalendarClock size={15} aria-hidden="true" />
+                即将到期
+                {expiry.days != null && expiry.days > 0 && <span className="home-region-chip-count">{expiry.expiringNodes.length}</span>}
+              </button>
+            )}
+          </div>
         )}
-        <button type="button" className="home-expiry-button" aria-pressed={expiringOnly}
-          title={expiry.message} onClick={() => {
-            if (!expiringOnly) {
-              setSelectedGroup(HOME_ALL_GROUP); setSelectedRegion(HOME_ALL_REGION); setOfflineOnly(false);
-              if (expiry.loggedIn) void expiry.retry();
-            }
-            setExpiringOnly(value => !value);
-          }}>
-          <CalendarClock size={15} aria-hidden="true" />
-          即将到期
-          {expiry.days != null && expiry.days > 0 && <span className="home-region-chip-count">{expiry.expiringNodes.length}</span>}
-        </button>
-        </div>
         {expiringOnly && <div className="home-expiry-status" role="status">
           <span>{expiry.message}</span>
           {!expiry.loggedIn && <a href="/admin/">登录后台</a>}
