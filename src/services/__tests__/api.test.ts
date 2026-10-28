@@ -6,6 +6,7 @@ import {
   fetchServerThemeConfig,
   getLoadRecords,
   getMe,
+  getExpiryWarningDays,
   getNodes,
   getPingRecords,
   getPublic,
@@ -38,6 +39,25 @@ describe("Monitor API Service", () => {
     clearServerThemeSettingsCache();
     clearNodeMetricsHistoryCache();
     vi.restoreAllMocks();
+  });
+
+  describe("expiry reminder settings", () => {
+    it("reads only the normalized backend window without persisting settings", async () => {
+      const fetchMock = vi.fn().mockResolvedValue(Response.json({ notify_expiry: "14", notify_telegram_chat: "private" }));
+      vi.stubGlobal("fetch", fetchMock);
+      await expect(getExpiryWarningDays()).resolves.toBe(14);
+      expect(fetchMock).toHaveBeenCalledWith("/api/settings", expect.objectContaining({ credentials: "include", cache: "no-store" }));
+      expect(storageMap.size).toBe(0);
+    });
+    it.each([401, 403, 500])("propagates %s instead of inventing seven days", async status => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("failed", { status })));
+      await expect(getExpiryWarningDays()).rejects.toMatchObject({ status });
+    });
+    it("rejects a missing setting but preserves zero", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(Response.json({})).mockResolvedValueOnce(Response.json({ notify_expiry: "0" })));
+      await expect(getExpiryWarningDays()).rejects.toThrow("到期提醒天数");
+      await expect(getExpiryWarningDays()).resolves.toBe(0);
+    });
   });
 
   describe("Admin Nickname Storage", () => {

@@ -48,6 +48,16 @@ function agoDays(days: number) {
 }
 
 describe("calculateCostSummary", () => {
+  it("divides backend CNY prices by exact billing months, after USD/CAD conversion", () => {
+    const summary = calculateCostSummary([
+      node({ uuid: "host", price: 428.91, currency: "CNY", billing_cycle: "three_years" }),
+      node({ uuid: "vm", price: 233.32, currency: "CNY", billing_cycle: "year" }),
+      node({ uuid: "usd", price: 60, currency: "USD", billing_cycle: "three_years" }),
+      node({ uuid: "cad", price: 120, currency: "CAD", billing_cycle: "year" }),
+    ], [], { USD: 1, CNY: 7, CAD: 1.4 });
+    expect(summary.details.map(d => formatCnyMoney(d.monthlyCny))).toEqual(["¥ 11.91", "¥ 19.44", "¥ 11.67", "¥ 50.00"]);
+    expect(summary.monthlyCny).toBeCloseTo(428.91 / 36 + 233.32 / 12 + 420 / 36 + 600 / 12);
+  });
   it("scales remaining value by prepaid cycles (price is per-cycle)", () => {
     // 10 USD(=70 CNY)每 30 天一个周期,付到约 1 年后 → 还剩约 12 个周期的预付价值。
     // price 是每周期价格(后端 Client model + 自动续费逻辑已确认),所以剩余价值要按周期数放大

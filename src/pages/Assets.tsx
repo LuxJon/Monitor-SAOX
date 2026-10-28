@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { CalendarClock, ChevronDown, ChevronLeft, ChevronUp, RefreshCw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -10,25 +9,21 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useHourlyClock } from "@/hooks/useClock";
 import { useVisibleNodes } from "@/hooks/useVisibleNodes";
 import { useAuth } from "@/hooks/useAuth";
+import { useExpiryFilter } from "@/hooks/useExpiryFilter";
 import {
   calculateCostSummary,
   formatCnyMoney,
-  formatSignedCny,
   getExchangeRates,
 } from "@/utils/cost";
 import { formatBillingCycle } from "@/utils/billing";
 import { getExpireDaysRemaining, LONG_TERM_EXPIRE_DAYS } from "@/utils/format";
-import {
-  getRenewalReminders,
-} from "@/utils/renewalReminder";
 
 type AssetDetail = ReturnType<typeof calculateCostSummary>["details"][number];
 type AssetsSortField =
   | "weight"
   | "price"
   | "remaining"
-  | "premium"
-  | "premiumMonthly"
+  | "monthly"
   | "expiry";
 type AssetsSortDirection = "asc" | "desc";
 
@@ -36,8 +31,7 @@ const NATURAL_DIRECTION: Record<AssetsSortField, AssetsSortDirection> = {
   weight: "asc",
   price: "desc",
   remaining: "desc",
-  premium: "desc",
-  premiumMonthly: "desc",
+  monthly: "desc",
   expiry: "asc",
 };
 
@@ -45,15 +39,14 @@ const TABLE_COLUMNS: Array<{ field: AssetsSortField; label: string; numeric?: bo
   { field: "weight", label: "节点" },
   { field: "price", label: "价格", numeric: true },
   { field: "remaining", label: "剩余价值", numeric: true },
-  { field: "premium", label: "溢价", numeric: true },
-  { field: "premiumMonthly", label: "溢价月摊", numeric: true },
+  { field: "monthly", label: "月付成本", numeric: true },
   { field: "expiry", label: "到期", numeric: true },
 ];
 
 const MOBILE_SORT_OPTIONS: Array<{ field: AssetsSortField; label: string }> = [
   { field: "weight", label: "权重" },
   { field: "price", label: "价格" },
-  { field: "premium", label: "溢价" },
+  { field: "monthly", label: "月付成本" },
   { field: "expiry", label: "到期" },
 ];
 
@@ -65,12 +58,10 @@ function sortValue(detail: AssetDetail, field: AssetsSortField): number {
       return detail.priceCny;
     case "remaining":
       return detail.remainingCny;
-    case "premium":
-      return detail.premiumCny;
-    case "premiumMonthly":
-      return detail.premiumMonthlyCny;
+    case "monthly":
+      return detail.monthlyCny;
     case "expiry": {
-      const days = getExpireDaysRemaining(detail.expiredAt);
+      const days = getExpireDaysRemaining(detail.expiredAt, Date.now(), detail.expiresIn);
       return days == null ? Number.POSITIVE_INFINITY : days;
     }
     default:
@@ -78,8 +69,8 @@ function sortValue(detail: AssetDetail, field: AssetsSortField): number {
   }
 }
 
-function formatCostExpiry(expiredAt: string) {
-  const days = getExpireDaysRemaining(expiredAt);
+function formatCostExpiry(expiredAt: string, expiresIn?: number | null) {
+  const days = getExpireDaysRemaining(expiredAt, Date.now(), expiresIn);
   if (days == null) return "到期未知";
   if (days > LONG_TERM_EXPIRE_DAYS) return "长期";
   if (days < 0) return "已过期";
@@ -87,10 +78,9 @@ function formatCostExpiry(expiredAt: string) {
   return `${days} 天后到期`;
 }
 
-function premiumTone(value: number) {
-  if (value > 0) return "var(--status-error)";
-  if (value < 0) return "var(--status-success)";
-  return "var(--text-tertiary)";
+function formatMonthlyCost(detail: AssetDetail) {
+  if (!detail.counted) return detail.note === "免费" ? formatCnyMoney(0) : "—";
+  return detail.billingCycleDays > 0 ? formatCnyMoney(detail.monthlyCny) : "不适用";
 }
 
 function assetsRenewalTone(daysRemaining: number): "critical" | "warning" {
@@ -125,7 +115,10 @@ export function Assets() {
   const forceRateRefresh = useRef(false);
   const nodes = useVisibleNodes();
   // 资产详情页是风险核对入口：这里始终按真实到期数据展示，不读取首页的关闭/稍后偏好。
-  const renewalReminders = useMemo(() => getRenewalReminders(nodes, now), [nodes, now]);
+  const expiry = useExpiryFilter(nodes);
+  const renewalReminders = useMemo(() => expiry.expiringNodes.map(node => ({
+    uuid: node.uuid, daysRemaining: getExpireDaysRemaining(node.expired_at, now, node.expires_in)!,
+  })), [expiry.expiringNodes, now]);
   const renewalByUuid = useMemo(
     () => new Map(renewalReminders.map((item) => [item.uuid, item])),
     [renewalReminders],
@@ -172,7 +165,7 @@ export function Assets() {
   const exchangeRateRows = useMemo(() => {
     if (!rateQuery.data?.rates.CNY) return [];
     const rates = rateQuery.data.rates;
-    return ["USD", "HKD", "EUR", "GBP", "JPY"]
+    return ["USD", "CAD", "HKD", "EUR", "GBP", "JPY", "AUD", "SGD"]
       .map((code) => (rates[code] ? { code, value: rates.CNY / rates[code] } : null))
       .filter((item): item is { code: string; value: number } => Boolean(item));
   }, [rateQuery.data]);
@@ -205,45 +198,9 @@ export function Assets() {
     return <Navigate to="/" replace />;
   }
 
-  const hasPremium = summary?.details.some((detail) => detail.premiumCny !== 0) ?? false;
-  const ledgerRows: Array<{
-    label: string;
-    value: string;
-    tone?: string;
-    title?: string;
-  }> = [
+  const ledgerRows = [
     { label: "年化总支出", value: summary ? formatCnyMoney(summary.totalCny) : "--" },
-    { label: "月均支出", value: summary ? formatCnyMoney(summary.monthlyCny) : "--" },
-    ...(summary != null && hasPremium
-      ? [
-          {
-            label: "溢价盈亏",
-            value: formatSignedCny(summary.premiumTotalCny),
-            tone: premiumTone(summary.premiumTotalCny),
-            title:
-              "所有节点「收购溢价」的加总（正数=溢价多花钱，负数=折价少花钱），只反映溢价本身的赚亏，不叠加到剩余价值/年化/月均里",
-          },
-        ]
-      : []),
-    ...(summary != null && summary.premiumMonthlyTotalCny !== 0
-      ? [
-          {
-            label: "真实月均",
-            value: formatCnyMoney(summary.effectiveMonthlyCny),
-            title:
-              "月均支出 + 溢价月摊（各节点溢价 ÷ 收购日至到期日的月数，无到期按已持有月数；仅计入填写了收购日期的节点），仅作参考，不改变月均支出口径",
-          },
-        ]
-      : []),
-    ...(summary != null && hasPremium
-      ? [
-          {
-            label: "实际剩余价值",
-            value: formatCnyMoney(summary.actualRemainingCny),
-            title: "剩余价值 + 尚未摊销的溢价；固定期限节点的溢价随到期临近衰减，到期后归零",
-          },
-        ]
-      : []),
+    { label: "月付成本合计", value: summary ? formatCnyMoney(summary.monthlyCny) : "--" },
   ];
 
   const directionIcon =
@@ -284,16 +241,16 @@ export function Assets() {
               ¥
             </span>
             <div className="assets-hero-main">
-              <span className="assets-eyebrow" title="按各节点账单价格折算的剩余价值，不含收购溢价">
+              <span className="assets-eyebrow" title="按后台账单价格换算人民币后的剩余价值">
                 剩余价值
               </span>
               <HeroMoney value={summary ? summary.remainingCny : null} />
             </div>
             <dl className="assets-ledger">
               {ledgerRows.map((row) => (
-                <div className="assets-ledger-row" key={row.label} title={row.title}>
+                <div className="assets-ledger-row" key={row.label}>
                   <dt>{row.label}</dt>
-                  <dd style={row.tone ? { color: row.tone } : undefined}>{row.value}</dd>
+                  <dd>{row.value}</dd>
                 </div>
               ))}
             </dl>
@@ -401,25 +358,8 @@ export function Assets() {
                         <td data-numeric data-strong>
                           {detail.counted ? formatCnyMoney(detail.remainingCny) : "—"}
                         </td>
-                        <td data-numeric>
-                          {detail.premiumCny !== 0 ? (
-                            <span style={{ color: premiumTone(detail.premiumCny) }}>
-                              {formatSignedCny(detail.premiumCny)}
-                            </span>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                        <td data-numeric>
-                          {detail.premiumCny !== 0 && detail.amortMonths != null ? (
-                            <span
-                              title={`摊销 ${Math.round(detail.amortMonths)} 个月（收购日 → 到期日；无到期按已持有）`}
-                            >
-                              {formatSignedCny(detail.premiumMonthlyCny)}/月
-                            </span>
-                          ) : (
-                            "—"
-                          )}
+                        <td data-numeric title="后台周期价格换算人民币 ÷ 计费月数">
+                          {formatMonthlyCost(detail)}
                         </td>
                         <td data-numeric>
                           {reminder ? (
@@ -428,11 +368,11 @@ export function Assets() {
                               data-tone={renewalTone}
                               title={renewalLabel}
                             >
-                              <span>{formatCostExpiry(detail.expiredAt)}</span>
+                              <span>{formatCostExpiry(detail.expiredAt, detail.expiresIn)}</span>
                               <small>{renewalLabel}</small>
                             </span>
                           ) : (
-                            formatCostExpiry(detail.expiredAt)
+                            formatCostExpiry(detail.expiredAt, detail.expiresIn)
                           )}
                         </td>
                         </tr>
@@ -476,30 +416,14 @@ export function Assets() {
                       </div>
                       <div className="cost-summary-detail-meta">
                         <span className="cost-summary-price-chip">{priceLabel}</span>
-                        {detail.premiumCny !== 0 && (
-                          <span
-                            className="cost-summary-premium-chip"
-                            style={
-                              { "--cost-premium-color": premiumTone(detail.premiumCny) } as CSSProperties
-                            }
-                            title="收购溢价（正数=多花钱溢价买入，负数=折价买入）"
-                          >
-                            {formatSignedCny(detail.premiumCny)} 溢价
-                          </span>
-                        )}
-                        {detail.premiumCny !== 0 && detail.amortMonths != null && (
-                          <span
-                            className="cost-summary-premium-chip"
-                            title="溢价月摊 = 收购溢价 ÷ 摊销月数（收购日 → 到期日；无到期按已持有）"
-                          >
-                            月摊 {formatSignedCny(detail.premiumMonthlyCny)} · 摊 {Math.round(detail.amortMonths)} 月
-                          </span>
-                        )}
+                        <span className="cost-summary-monthly-chip" title="后台周期价格换算人民币 ÷ 计费月数">
+                          月付成本 {formatMonthlyCost(detail)}
+                        </span>
                         <span
                           className="cost-summary-expire-label"
                           data-tone={renewalTone}
                         >
-                          {formatCostExpiry(detail.expiredAt)}
+                          {formatCostExpiry(detail.expiredAt, detail.expiresIn)}
                           {renewalLabel && <small>{renewalLabel}</small>}
                         </span>
                       </div>

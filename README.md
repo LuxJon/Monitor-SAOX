@@ -1,6 +1,6 @@
 # SAOX
 
-**SAOX 1.2.3** 是面向 [Monitor 极简探针](https://github.com/monitor-probe/monitor) 的独立主题，由 LuxJon 在 [WAOR/Monitor-SAO](https://github.com/WAOR/Monitor-SAO) 基础上定制。采用交互点阵世界地图、液态玻璃监控状态和三运营商延迟显示。
+**SAOX 1.2.4** 是面向 [Monitor 极简探针](https://github.com/monitor-probe/monitor) 的独立主题，由 LuxJon 在 [WAOR/Monitor-SAO](https://github.com/WAOR/Monitor-SAO) 基础上定制。采用交互点阵世界地图、液态玻璃监控状态和三运营商延迟显示。
 
 > 安装身份为 `saox`，可与原版 `sao` 同时保留在主题列表中。两个主题的服务端配置和浏览器偏好独立存储。Monitor 每次展示当前选中的一个主题。
 
@@ -33,6 +33,13 @@
 
 <img src="docs/mobile.png" alt="SAOX 手机预览" width="390" />
 
+## 月付成本与即将到期
+
+- 资产页统一展示人民币：后台周期价格按汇率换算 CNY，再除以计费月数。三年 ¥428.91 ÷ 36 = ¥11.91/月，年付 ¥233.32 ÷ 12 = ¥19.44/月；不计入收购溢价。免费显示 ¥0.00，一次性费用没有月付成本，汇率缺失不伪造价格。
+- 地区栏右侧的「即将到期」按后台「到期提醒（天）」筛选。点击时清除地区、分组、离线筛选，按到期先后显示全部可见节点；再次点击或「显示全部」恢复。手机上按钮换到地区标签下方靠右。
+- 提醒天数直接来自管理员接口 `/api/settings` 的 `notify_expiry`，不是主题另设的固定天数。0 表示关闭；包含今日到期，不包含已过期；优先使用后端 `expires_in`，与后台日期口径一致。后台变更后，回到前台、重新点击按钮或一分钟刷新时更新。
+- Monitor 当前不向访客公开提醒天数，因此未登录时提示登录后台；读取失败显示重试，不猜测 7 天。不读取或保存任何通知凭据。
+
 ## 两处主题设置
 
 Monitor 后台提供 25 项基础设置；登录后的前台「SAOX 主题设置」提供完整高级编辑，修改会自动保存到当前站点的 `/api/themes/saox/config`。保存失败会显示错误，不会显示成已同步。
@@ -63,10 +70,10 @@ npm run package
 打包会生成：
 
 - `theme.tar.gz`：Monitor 可导入的主题包，也是自动更新识别的固定资产名。
-- `SAOX-1.2.3-source.zip`：当前源码，不含依赖、缓存或历史聊天产物。
+- `SAOX-1.2.4-source.zip`：当前源码，不含依赖、缓存或历史聊天产物。
 - `SHA256SUMS`：两个包的 SHA-256 校验值。
 
-`theme.json` 和 `package.json` 版本必须一致。推送 `v1.2.3` 标签会在 GitHub Actions 执行 lint、类型检查、测试、构建及打包，成功后发布 Release。不要手工修改构建输出替代源码变更。
+`theme.json` 和 `package.json` 版本必须一致。推送 `v1.2.4` 标签会在 GitHub Actions 执行 lint、类型检查、测试、构建及打包，成功后发布 Release。不要手工修改构建输出替代源码变更。
 
 ## 仓库结构
 

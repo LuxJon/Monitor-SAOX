@@ -82,6 +82,7 @@ interface CostSummaryDetail {
   name: string;
   region: string;
   expiredAt: string;
+  expiresIn?: number | null;
   weight: number;
   priceCny: number;
   monthlyCny: number;
@@ -468,6 +469,7 @@ export function calculateCostSummary(
       name: String(name || "未命名服务器"),
       region: String(node.region || ""),
       expiredAt: String(node.expired_at || ""),
+      expiresIn: node.expires_in,
       weight: Number(node.weight) || 0,
       priceCny: 0,
       monthlyCny: 0,

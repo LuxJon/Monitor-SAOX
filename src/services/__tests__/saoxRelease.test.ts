@@ -9,7 +9,7 @@ describe("SAOX release and coexistence", () => {
   it("uses an independent install identity and synchronized version", () => {
     const pkg = JSON.parse(readFileSync(new URL("../../../package.json", import.meta.url), "utf8"));
     expect(manifest.short).toBe("saox"); expect(THEME_SHORT).toBe("saox");
-    expect(manifest.name).toBe("SAOX"); expect(manifest.version).toBe("1.2.3"); expect(pkg.version).toBe(manifest.version);
+    expect(manifest.name).toBe("SAOX"); expect(manifest.version).toMatch(/^\d+\.\d+\.\d+$/); expect(pkg.version).toBe(manifest.version);
   });
   it("keeps backend schema and normalized defaults in sync, with no removed visitor controls", () => {
     const items = manifest.config.filter((item: {key?: string}) => item.key);

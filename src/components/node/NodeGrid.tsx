@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { CalendarClock } from "lucide-react";
+import { useExpiryFilter } from "@/hooks/useExpiryFilter";
 
 import { Flag } from "@/components/ui/Flag";
 import { FloatingAssetButton } from "@/components/cost/FloatingAssetButton";
@@ -179,6 +181,7 @@ export function NodeGrid() {
   const [selectedGroup, setSelectedGroup] = useState(HOME_ALL_GROUP);
   const [selectedRegion, setSelectedRegion] = useState(HOME_ALL_REGION);
   const [offlineOnly, setOfflineOnly] = useState(false);
+  const [expiringOnly, setExpiringOnly] = useState(false);
   useHomepagePingOverview(mode);
 
   // 摘要不含名称，先从完整 meta 解析主题隐藏列表，再统一过滤各类数据。
@@ -199,6 +202,9 @@ export function NodeGrid() {
     [allMeta, me?.logged_in, hiddenUuids],
   );
   const trafficUuids = useMemo(() => visibleMeta.map((node) => node.uuid), [visibleMeta]);
+  const expiry = useExpiryFilter(visibleMeta);
+  const expiryOrder = useMemo(() => new Map(expiry.expiringNodes.map((node, index) => [node.uuid, index])), [expiry.expiringNodes]);
+  const clearExpiry = () => setExpiringOnly(false);
   // 「名称」排序需要展示名(摘要无 name),从 meta 注入。
   const nameByUuid = useMemo(() => {
     const map = new Map<string, string>();
@@ -353,15 +359,21 @@ export function NodeGrid() {
     [groupFilteredNodes, selectedRegion],
   );
   // Status is applied only to the list, so overview counts and map remain stable.
-  const filteredNodes = useMemo(() => offlineOnly ? regionFilteredNodes.filter(node => node.online === false) : regionFilteredNodes, [regionFilteredNodes, offlineOnly]);
+  const filteredNodes = useMemo(() => expiringOnly
+    ? visibleNodes.filter(node => expiryOrder.has(node.uuid))
+    : offlineOnly ? regionFilteredNodes.filter(node => node.online === false) : regionFilteredNodes,
+  [expiringOnly, visibleNodes, expiryOrder, regionFilteredNodes, offlineOnly]);
   // 排序在分组筛选之后。离线永远沉底(写死,见 homeSort);实时网速走防抖(键平滑+滞回+5s 重排)。
-  const orderedNodes = useHomeNodeOrder({
+  const defaultOrderedNodes = useHomeNodeOrder({
     nodes: filteredNodes,
     field: sortField,
     direction: sortDirection,
     nameByUuid,
     priceByUuid,
   });
+  const orderedNodes = useMemo(() => expiringOnly
+    ? [...filteredNodes].sort((a, b) => expiryOrder.get(a.uuid)! - expiryOrder.get(b.uuid)!)
+    : defaultOrderedNodes, [expiringOnly, filteredNodes, expiryOrder, defaultOrderedNodes]);
 
   useEffect(() => {
     if (
@@ -493,7 +505,7 @@ export function NodeGrid() {
           costSummary={overviewCostSummary}
           costLoading={costLoading}
           offlineOnly={offlineOnly}
-          onToggleOffline={() => setOfflineOnly(value => !value)}
+          onToggleOffline={() => { clearExpiry(); setOfflineOnly(value => !value); }}
           showAssetLink={showCostDetailButton}
           showTrafficLink={themeSettings.showTrafficPageButton && (loggedIn || themeSettings.showTrafficPageForGuests)}
         />
@@ -527,20 +539,40 @@ export function NodeGrid() {
                 groups={groupOptions}
                 hasUngrouped={isUngroupedTabEnabled}
                 selectedGroup={selectedGroup}
-                onSelectGroup={setSelectedGroup}
+                onSelectGroup={group => { clearExpiry(); setSelectedGroup(group); }}
               />
             )}
           </div>
         )}
+        <div className="home-filter-toolbar">
         {showRegionBar && (
           <RegionTabs
             regions={regionOptions}
             selectedRegion={selectedRegion}
-            onSelectRegion={setSelectedRegion}
+            onSelectRegion={region => { clearExpiry(); setSelectedRegion(region); }}
           />
         )}
+        <button type="button" className="home-expiry-button" aria-pressed={expiringOnly}
+          title={expiry.message} onClick={() => {
+            if (!expiringOnly) {
+              setSelectedGroup(HOME_ALL_GROUP); setSelectedRegion(HOME_ALL_REGION); setOfflineOnly(false);
+              if (expiry.loggedIn) void expiry.retry();
+            }
+            setExpiringOnly(value => !value);
+          }}>
+          <CalendarClock size={15} aria-hidden="true" />
+          即将到期
+          {expiry.days != null && expiry.days > 0 && <span className="home-region-chip-count">{expiry.expiringNodes.length}</span>}
+        </button>
+        </div>
+        {expiringOnly && <div className="home-expiry-status" role="status">
+          <span>{expiry.message}</span>
+          {!expiry.loggedIn && <a href="/admin/">登录后台</a>}
+          {expiry.isError && <button type="button" onClick={() => void expiry.retry()}>重试</button>}
+          <button type="button" onClick={clearExpiry}>显示全部</button>
+        </div>}
         {offlineOnly && <div className="home-status-filter" role="status"><button type="button" aria-label="清除离线筛选，显示全部节点" onClick={() => setOfflineOnly(false)}>仅看离线 · {filteredNodes.length} <span aria-hidden="true">×</span></button></div>}
-        {offlineOnly && filteredNodes.length === 0 ? <div className="home-filter-empty" role="status">当前筛选中没有离线节点<button type="button" onClick={() => setOfflineOnly(false)}>返回全部节点</button></div> : isList ? (
+        {expiringOnly && filteredNodes.length === 0 ? <div className="home-filter-empty" role="status">{expiry.days != null && expiry.days > 0 ? `未来 ${expiry.days} 天内没有即将到期的服务器` : expiry.message}</div> : offlineOnly && filteredNodes.length === 0 ? <div className="home-filter-empty" role="status">当前筛选中没有离线节点<button type="button" onClick={() => setOfflineOnly(false)}>返回全部节点</button></div> : isList ? (
           <NodeListView uuids={orderedUuids} />
         ) : showTrafficPopover ? (
           <TodayTrafficStatsProvider uuids={trafficUuids}>

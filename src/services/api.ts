@@ -31,6 +31,15 @@ import {
   normalizeThemeSettings,
 } from "@/utils/themeSettings";
 import type { TrafficMetricSeries } from "@/utils/trafficStats";
+import { parseExpiryWarningDays } from "@/utils/expiryFilter";
+
+/** Authenticated setting read. Retain only the reminder window, never the settings payload. */
+export async function getExpiryWarningDays(options?: RequestOptions): Promise<number> {
+  const settings = await apiFetch<Record<string, unknown>>("/api/settings", { ...options, cache: "no-store" });
+  const days = parseExpiryWarningDays(settings.notify_expiry);
+  if (days == null) throw new Error("后台未提供有效的到期提醒天数");
+  return days;
+}
 
 export const ADMIN_USERNAME_KEY = "saox:admin-username";
 

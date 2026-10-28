@@ -53,7 +53,7 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           name: SAOX ${{ github.ref_name }}
-          body_path: .github/release-notes/v1.2.3.md
+          body_path: .github/release-notes/${{ github.ref_name }}.md
           files: |
             release/theme.tar.gz
             release/SAOX-*-source.zip
